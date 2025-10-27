@@ -24,9 +24,11 @@ class LLMAssistantSection {
         
         // Display header for the section
         header: {
-          l10nID: 'zotero-llm-assistant-header',
           label: 'LLM Assistant'
         },
+        
+        // Header icon (optional)
+        headericon: 'chrome://zotero/skin/16/universal/search.svg',
         
         // Show for regular items, not notes or attachments
         onInit: ({ item, editable, tabType }) => {
