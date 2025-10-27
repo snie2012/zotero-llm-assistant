@@ -24,8 +24,10 @@ class LLMAssistantSection {
         
         // Display header for the section
         header: {
+          l10nID: 'zotero-llm-assistant-header',
           label: 'LLM Assistant'
         },
+        headerl10nID: 'zotero-llm-assistant-header',
         
         // Sidenav configuration
         sidenav: {
