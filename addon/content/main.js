@@ -36,6 +36,9 @@ class LLMAssistantSection {
           label: 'LLM Assistant'
         },
         
+        // Header icon
+        headericon: 'chrome://zotero/skin/16/universal/search.svg',
+        
         // Show for regular items, not notes or attachments
         onInit: ({ item, editable, tabType }) => {
           return item && !item.isNote() && !item.isAttachment();
