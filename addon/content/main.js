@@ -23,6 +23,7 @@ const LLMAssistant = {
       // Register a custom section in the item pane
       Zotero.ItemPaneManager.registerSection({
         paneID: 'llm-assistant',
+        pluginID: 'zotero-llm-assistant@snie2012.com',
         sectionName: 'LLM Assistant',
         onRender: function(container, data) {
           // Render the LLM assistant UI
