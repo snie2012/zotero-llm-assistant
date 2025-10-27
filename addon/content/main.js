@@ -25,14 +25,15 @@ class LLMAssistantSection {
         // Display header for the section
         header: {
           l10nID: 'zotero-llm-assistant-header',
+          icon: 'chrome://zotero/skin/16/universal/chart-bar.svg',
           label: 'LLM Assistant'
         },
-        headericon: 'chrome://zotero/skin/16/universal/search.svg',
+        headericon: 'chrome://zotero/skin/16/universal/chart-bar.svg',
         headerl10nID: 'zotero-llm-assistant-header',
         
         // Sidenav configuration
         sidenav: {
-          icon: 'chrome://zotero/skin/16/universal/search.svg',
+          icon: 'chrome://zotero/skin/16/universal/chart-bar.svg',
           l10nID: 'zotero-llm-assistant-sidenav',
           label: 'LLM Assistant'
         },
