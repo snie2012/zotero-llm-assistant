@@ -18,21 +18,31 @@ const LLMAssistant = {
   },
   
   createSidePanel: function() {
+    // Add menu item to open LLM Assistant
+    this.addMenuItem();
+  },
+  
+  addMenuItem: function() {
     try {
-      // Register a tab with Zotero.Tab
-      this.tabID = Zotero.Tab.register({
-        title: 'LLM Assistant',
-        src: this.rootURI + 'content/sidebar.html',
-        visible: true,
-        onLoad: function() {
-          Zotero.log("LLM Assistant tab loaded");
-        }
-      });
-      
-      Zotero.log("LLM Assistant side panel registered with tabID: " + this.tabID);
+      // Add to Tools menu
+      var menu = document.getElementById('menu_Tools');
+      if (menu) {
+        var menuitem = document.createElement('menuitem');
+        menuitem.setAttribute('id', 'zotero-llm-assistant-menu');
+        menuitem.setAttribute('label', 'LLM Assistant...');
+        menuitem.addEventListener('command', () => this.openLLMPanel());
+        menu.appendChild(menuitem);
+        Zotero.log("LLM Assistant menu item added");
+      }
     } catch (e) {
-      Zotero.log("Error creating side panel: " + e);
+      Zotero.log("Error adding menu item: " + e);
     }
+  },
+  
+  openLLMPanel: function() {
+    Zotero.log("Opening LLM Assistant panel");
+    // For now, just log - we'll implement the actual panel next
+    alert("LLM Assistant: Side panel will open here");
   }
 };
 
