@@ -1,6 +1,6 @@
 /**
  * Main module for Zotero LLM Assistant
- * Side panel implementation - waiting for window load
+ * Item pane section implementation
  */
 
 Zotero.log("Zotero LLM Assistant: Main module loaded");
@@ -12,69 +12,41 @@ const LLMAssistant = {
     this.rootURI = rootURI;
     Zotero.log("Zotero LLM Assistant initialized with rootURI: " + rootURI);
     
-    // Wait for Zotero UI to be ready
-    this.waitForUI();
+    // Add a section to the item pane (like abstract/notes)
+    this.addItemPaneSection();
   },
   
-  waitForUI: function() {
-    // Use Services.obs to wait for window load
-    var self = this;
-    var observer = {
-      observe: function(subject, topic, data) {
-        if (topic === 'xul-window-registered') {
-          self.setupMenuItem(subject);
-        }
-      }
-    };
-    
-    Services.obs.addObserver(observer, 'xul-window-registered', false);
-    
-    // Also try immediately if already loaded
-    setTimeout(() => self.trySetupMenuItem(), 1000);
-  },
-  
-  trySetupMenuItem: function() {
+  addItemPaneSection: function() {
     try {
-      // Get the main window
-      var window = Services.wm.getMostRecentWindow('navigator:browser');
-      if (window && window.document) {
-        this.addMenuItem(window.document);
-      }
+      // Register a custom section in the item pane
+      Zotero.ItemPaneManager.registerSection({
+        paneID: 'llm-assistant',
+        pluginID: 'zotero-llm-assistant@snie2012.com',
+        sectionName: 'LLM Assistant',
+        pluginURL: this.rootURI + 'content/sidebar.html',
+        sectionType: 'html',
+        sectionHTML: this.getSectionHTML(),
+        order: 999  // Add at the end, after notes
+      });
+      
+      Zotero.log("LLM Assistant section added to item pane");
     } catch (e) {
-      Zotero.log("Error in trySetupMenuItem: " + e);
+      Zotero.log("Error adding section: " + e);
     }
   },
   
-  setupMenuItem: function(window) {
-    if (window.document) {
-      this.addMenuItem(window.document);
-    }
-  },
-  
-  addMenuItem: function(doc) {
-    try {
-      // Add to Tools menu
-      var menu = doc.getElementById('menu_Tools');
-      if (menu) {
-        var menuitem = doc.createElement('menuitem');
-        menuitem.setAttribute('id', 'zotero-llm-assistant-menu');
-        menuitem.setAttribute('label', 'LLM Assistant...');
-        menuitem.setAttribute('oncommand', 'Zotero.LLMAssistant.openPanel()');
-        menu.appendChild(menuitem);
-        Zotero.log("LLM Assistant menu item added");
-      }
-    } catch (e) {
-      Zotero.log("Error adding menu item: " + e);
-    }
-  },
-  
-  openPanel: function() {
-    Zotero.log("Opening LLM Assistant panel");
-    alert("LLM Assistant: Panel will open here");
+  getSectionHTML: function() {
+    return `
+      <div style="padding: 10px;">
+        <h3 style="margin-top: 0; font-size: 14px;">LLM Assistant</h3>
+        <p style="color: #666;">Interact with ChatGPT, Claude, and other LLMs</p>
+        <button onclick="alert('LLM Assistant coming soon!')">Start Chat</button>
+      </div>
+    `;
   }
 };
 
-// Make openPanel globally accessible
+// Make globally accessible if needed
 Zotero.LLMAssistant = LLMAssistant;
 
 // Initialize with rootURI passed from bootstrap context
