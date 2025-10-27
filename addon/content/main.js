@@ -25,7 +25,9 @@ const LLMAssistant = {
         paneID: 'llm-assistant',
         pluginID: 'zotero-llm-assistant@snie2012.com',
         sectionName: 'LLM Assistant',
-        header: 'LLM Assistant',
+        header: {
+          text: 'LLM Assistant'
+        },
         target: 'itemPane',
         order: 999,  // Add at the end, after notes
         onRender: function(container, data) {
