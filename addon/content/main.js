@@ -1,36 +1,65 @@
 /**
  * Main module for Zotero LLM Assistant
- * Side panel implementation using Zotero.Tab
+ * Side panel implementation - waiting for window load
  */
 
 Zotero.log("Zotero LLM Assistant: Main module loaded");
 
 const LLMAssistant = {
   rootURI: null,
-  tabID: null,
   
   init: function(rootURI) {
     this.rootURI = rootURI;
     Zotero.log("Zotero LLM Assistant initialized with rootURI: " + rootURI);
     
-    // Create the side panel
-    this.createSidePanel();
+    // Wait for Zotero UI to be ready
+    this.waitForUI();
   },
   
-  createSidePanel: function() {
-    // Add menu item to open LLM Assistant
-    this.addMenuItem();
+  waitForUI: function() {
+    // Use Services.obs to wait for window load
+    var self = this;
+    var observer = {
+      observe: function(subject, topic, data) {
+        if (topic === 'xul-window-registered') {
+          self.setupMenuItem(subject);
+        }
+      }
+    };
+    
+    Services.obs.addObserver(observer, 'xul-window-registered', false);
+    
+    // Also try immediately if already loaded
+    setTimeout(() => self.trySetupMenuItem(), 1000);
   },
   
-  addMenuItem: function() {
+  trySetupMenuItem: function() {
+    try {
+      // Get the main window
+      var window = Services.wm.getMostRecentWindow('navigator:browser');
+      if (window && window.document) {
+        this.addMenuItem(window.document);
+      }
+    } catch (e) {
+      Zotero.log("Error in trySetupMenuItem: " + e);
+    }
+  },
+  
+  setupMenuItem: function(window) {
+    if (window.document) {
+      this.addMenuItem(window.document);
+    }
+  },
+  
+  addMenuItem: function(doc) {
     try {
       // Add to Tools menu
-      var menu = document.getElementById('menu_Tools');
+      var menu = doc.getElementById('menu_Tools');
       if (menu) {
-        var menuitem = document.createElement('menuitem');
+        var menuitem = doc.createElement('menuitem');
         menuitem.setAttribute('id', 'zotero-llm-assistant-menu');
         menuitem.setAttribute('label', 'LLM Assistant...');
-        menuitem.addEventListener('command', () => this.openLLMPanel());
+        menuitem.setAttribute('oncommand', 'Zotero.LLMAssistant.openPanel()');
         menu.appendChild(menuitem);
         Zotero.log("LLM Assistant menu item added");
       }
@@ -39,12 +68,14 @@ const LLMAssistant = {
     }
   },
   
-  openLLMPanel: function() {
+  openPanel: function() {
     Zotero.log("Opening LLM Assistant panel");
-    // For now, just log - we'll implement the actual panel next
-    alert("LLM Assistant: Side panel will open here");
+    alert("LLM Assistant: Panel will open here");
   }
 };
+
+// Make openPanel globally accessible
+Zotero.LLMAssistant = LLMAssistant;
 
 // Initialize with rootURI passed from bootstrap context
 if (typeof rootURI !== 'undefined') {
