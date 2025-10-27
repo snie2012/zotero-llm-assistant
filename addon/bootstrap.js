@@ -19,7 +19,7 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
   // Load main module with rootURI
   var ctx = { rootURI: rootURI };
   Services.scriptloader.loadSubScript(
-    `${rootURI}content/main.js`,
+    rootURI + "content/main.js",
     ctx
   );
 }
