@@ -7,8 +7,8 @@
   "homepage_url": "https://github.com/snie2012",
   "applications": {
     "zotero": {
-      "id": "zotero-llm-assistant@yourname.com",
-      "update_url": "https://github.com/yourusername/zotero-llm-assistant/releases/download/v{version}/zotero-llm-assistant.xpi",
+      "id": "zotero-llm-assistant@snie2012.com",
+      "update_url": "https://github.com/snie2012/zotero-llm-assistant/releases/download/v{version}/zotero-llm-assistant.xpi",
       "strict_min_version": "7.0",
       "strict_max_version": "7.*"
     }

@@ -79,6 +79,10 @@ zotero-llm-assistant/
 
 MIT
 
+## Repository
+
+This plugin is available on GitHub: [https://github.com/snie2012/zotero-llm-assistant](https://github.com/snie2012/zotero-llm-assistant)
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
