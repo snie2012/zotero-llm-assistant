@@ -24,8 +24,6 @@ class LLMAssistantSection {
         
         // Display header for the section
         header: {
-          l10nID: 'zotero-llm-assistant-header',
-          icon: 'chrome://zotero/skin/16/universal/search.svg',
           label: 'LLM Assistant'
         },
         
