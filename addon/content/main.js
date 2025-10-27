@@ -27,6 +27,7 @@ class LLMAssistantSection {
           l10nID: 'zotero-llm-assistant-header',
           label: 'LLM Assistant'
         },
+        headericon: 'chrome://zotero/skin/16/universal/search.svg',
         headerl10nID: 'zotero-llm-assistant-header',
         
         // Sidenav configuration
@@ -35,9 +36,6 @@ class LLMAssistantSection {
           l10nID: 'zotero-llm-assistant-sidenav',
           label: 'LLM Assistant'
         },
-        
-        // Header icon
-        headericon: 'chrome://zotero/skin/16/universal/search.svg',
         
         // Show for regular items, not notes or attachments
         onInit: ({ item, editable, tabType }) => {
