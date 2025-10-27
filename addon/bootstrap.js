@@ -29,9 +29,13 @@ async function shutdown({ id, version, resourceURI, rootURI }, reason) {
     return;
   }
 
-  if (chromeHandle) {
-    chromeHandle.destruct();
-    chromeHandle = null;
+  try {
+    if (chromeHandle) {
+      chromeHandle.destruct();
+      chromeHandle = null;
+    }
+  } catch (e) {
+    // Ignore errors during shutdown
   }
 }
 
