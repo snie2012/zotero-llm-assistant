@@ -1,26 +1,35 @@
 /*
  * Bootstrap file for Zotero LLM Assistant
- * This file handles the plugin lifecycle events
+ * Based on Zotero Make It Red example
  */
 
-function install() {
-  console.log("Installing Zotero LLM Assistant plugin");
+var chromeHandle;
+
+function install(data, reason) {}
+
+async function startup({ id, version, resourceURI, rootURI }, reason) {
+  var aomStartup = Components.classes[
+    "@mozilla.org/addons/addon-manager-startup;1"
+  ].getService(Components.interfaces.amIAddonManagerStartup);
+  var manifestURI = Services.io.newURI(rootURI + "manifest.json");
+  chromeHandle = aomStartup.registerChrome(manifestURI, [
+    ["content", "zotero-llm-assistant", rootURI + "content/"],
+  ]);
+
+  // Load main module
+  Services.scriptloader.loadSubScript(`${rootURI}/content/main.js`);
 }
 
-function uninstall() {
-  console.log("Uninstalling Zotero LLM Assistant plugin");
+async function shutdown({ id, version, resourceURI, rootURI }, reason) {
+  if (reason === APP_SHUTDOWN) {
+    return;
+  }
+
+  if (chromeHandle) {
+    chromeHandle.destruct();
+    chromeHandle = null;
+  }
 }
 
-function startup({ id, version }) {
-  console.log("Starting Zotero LLM Assistant plugin", { id, version });
-  
-  // Load the main module
-  Services.scriptloader.loadSubScript(
-    "chrome://zotero-llm-assistant/content/main.js"
-  );
-}
-
-function shutdown({ id, reason }) {
-  console.log("Shutting down Zotero LLM Assistant plugin", { id, reason });
-}
+async function uninstall(data, reason) {}
 

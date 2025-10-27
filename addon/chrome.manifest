@@ -1,3 +1,4 @@
 content zotero-llm-assistant chrome/content/
+resource zotero-llm-assistant content/
 
 
