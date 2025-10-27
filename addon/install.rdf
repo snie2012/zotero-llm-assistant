@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+  <Description about="urn:mozilla:install-manifest">
+    <em:id>zotero-llm-assistant@yourname.com</em:id>
+    <em:version>0.0.1</em:version>
+    <em:updateURL>https://github.com/yourusername/zotero-llm-assistant/releases/download/v{version}/zotero-llm-assistant.xpi</em:updateURL>
+    <em:name>Zotero LLM Assistant</em:name>
+    <em:description>An LLM assistant plugin for Zotero</em:description>
+    <em:creator>Your Name</em:creator>
+    <em:homepageURL>https://github.com/yourusername/zotero-llm-assistant</em:homepageURL>
+    <em:targetApplication>
+      <Description>
+        <em:id>zotero@chnm.gmu.edu</em:id>
+        <em:minVersion>7.0</em:minVersion>
+        <em:maxVersion>7.*</em:maxVersion>
+      </Description>
+    </em:targetApplication>
+  </Description>
+</RDF>
+
+

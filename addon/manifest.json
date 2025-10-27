@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+  "name": "Zotero LLM Assistant",
+  "version": "0.0.1",
+  "description": "An LLM assistant plugin for Zotero",
+  "author": "Shaoliang Nie",
+  "homepage_url": "https://github.com/snie2012",
+  "applications": {
+    "zotero": {
+      "id": "zotero-llm-assistant@yourname.com",
+      "update_url": "https://github.com/yourusername/zotero-llm-assistant/releases/download/v{version}/zotero-llm-assistant.xpi",
+      "strict_min_version": "7.0",
+      "strict_max_version": "7.*"
+    }
+  }
+}
+
+

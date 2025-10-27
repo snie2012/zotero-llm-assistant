@@ -1,0 +1,19 @@
+{
+  "env": {
+    "browser": true,
+    "mozilla": true,
+    "zotero": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "globals": {
+    "Components": "readonly",
+    "Services": "readonly",
+    "Zotero": "readonly"
+  }
+}
+
+

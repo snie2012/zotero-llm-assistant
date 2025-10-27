@@ -1,0 +1,17 @@
+{
+  "name": "zotero-llm-assistant",
+  "version": "0.0.1",
+  "description": "An LLM assistant plugin for Zotero",
+  "scripts": {
+    "build": "node scripts/build.js"
+  },
+  "keywords": [
+    "zotero",
+    "zotero-plugin",
+    "llm"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
+
+

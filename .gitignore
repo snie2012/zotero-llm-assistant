@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+*.xpi
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+
