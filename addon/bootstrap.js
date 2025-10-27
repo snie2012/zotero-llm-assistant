@@ -16,8 +16,12 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     ["content", "zotero-llm-assistant", rootURI + "content/"],
   ]);
 
-  // Load main module
-  Services.scriptloader.loadSubScript(`${rootURI}/content/main.js`);
+  // Load main module with rootURI
+  var ctx = { rootURI: rootURI };
+  Services.scriptloader.loadSubScript(
+    `${rootURI}content/main.js`,
+    ctx
+  );
 }
 
 async function shutdown({ id, version, resourceURI, rootURI }, reason) {

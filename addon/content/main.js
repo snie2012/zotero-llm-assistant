@@ -1,19 +1,44 @@
 /**
  * Main module for Zotero LLM Assistant
- * This is a minimal implementation that loads successfully
+ * Side panel implementation using Zotero.Tab
  */
 
-// Log using Zotero's logging utilities
 Zotero.log("Zotero LLM Assistant: Main module loaded");
 
-// Placeholder for future LLM assistant functionality
 const LLMAssistant = {
-  init: function() {
-    Zotero.log("Zotero LLM Assistant initialized");
+  rootURI: null,
+  tabID: null,
+  
+  init: function(rootURI) {
+    this.rootURI = rootURI;
+    Zotero.log("Zotero LLM Assistant initialized with rootURI: " + rootURI);
+    
+    // Create the side panel
+    this.createSidePanel();
+  },
+  
+  createSidePanel: function() {
+    try {
+      // Register a tab with Zotero.Tab
+      this.tabID = Zotero.Tab.register({
+        title: 'LLM Assistant',
+        src: this.rootURI + 'content/sidebar.html',
+        visible: true,
+        onLoad: function() {
+          Zotero.log("LLM Assistant tab loaded");
+        }
+      });
+      
+      Zotero.log("LLM Assistant side panel registered with tabID: " + this.tabID);
+    } catch (e) {
+      Zotero.log("Error creating side panel: " + e);
+    }
   }
 };
 
-// Initialize when loaded
-LLMAssistant.init();
+// Initialize with rootURI passed from bootstrap context
+if (typeof rootURI !== 'undefined') {
+  LLMAssistant.init(rootURI);
+}
 
 
