@@ -18,14 +18,23 @@ const LLMAssistant = {
   
   addItemPaneSection: function() {
     try {
+      var self = this;
+      
       // Register a custom section in the item pane
       Zotero.ItemPaneManager.registerSection({
         paneID: 'llm-assistant',
-        pluginID: 'zotero-llm-assistant@snie2012.com',
         sectionName: 'LLM Assistant',
-        pluginURL: this.rootURI + 'content/sidebar.html',
-        sectionType: 'html',
-        sectionHTML: this.getSectionHTML(),
+        onRender: function(container, data) {
+          // Render the LLM assistant UI
+          var html = `
+            <div style="padding: 10px;">
+              <h3 style="margin-top: 0; font-size: 14px;">LLM Assistant</h3>
+              <p style="color: #666;">Interact with ChatGPT, Claude, and other LLMs</p>
+              <button onclick="alert('LLM Assistant coming soon!')">Start Chat</button>
+            </div>
+          `;
+          container.innerHTML = html;
+        },
         order: 999  // Add at the end, after notes
       });
       
@@ -33,16 +42,6 @@ const LLMAssistant = {
     } catch (e) {
       Zotero.log("Error adding section: " + e);
     }
-  },
-  
-  getSectionHTML: function() {
-    return `
-      <div style="padding: 10px;">
-        <h3 style="margin-top: 0; font-size: 14px;">LLM Assistant</h3>
-        <p style="color: #666;">Interact with ChatGPT, Claude, and other LLMs</p>
-        <button onclick="alert('LLM Assistant coming soon!')">Start Chat</button>
-      </div>
-    `;
   }
 };
 
