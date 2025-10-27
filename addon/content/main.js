@@ -5,57 +5,117 @@
 
 Zotero.log("Zotero LLM Assistant: Main module loaded");
 
-const LLMAssistant = {
-  rootURI: null,
-  
-  init: function(rootURI) {
+class LLMAssistantSection {
+  constructor(rootURI) {
     this.rootURI = rootURI;
-    Zotero.log("Zotero LLM Assistant initialized with rootURI: " + rootURI);
-    
-    // Add a section to the item pane (like abstract/notes)
-    this.addItemPaneSection();
-  },
-  
-  addItemPaneSection: function() {
+    this.sectionID = 'llm-assistant-section';
+    this.pluginID = 'zotero-llm-assistant@snie2012.com';
+  }
+
+  // Initialize the section
+  init() {
     try {
-      var self = this;
-      
-      // Register a custom section in the item pane
       Zotero.ItemPaneManager.registerSection({
-        paneID: 'llm-assistant',
-        pluginID: 'zotero-llm-assistant@snie2012.com',
-        sectionName: 'LLM Assistant',
+        // Unique identifier for this section
+        paneID: this.sectionID,
+        
+        // Plugin ID
+        pluginID: this.pluginID,
+        
+        // Display header for the section
         header: {
-          text: 'LLM Assistant'
+          l10nID: 'zotero-llm-assistant-header',
+          label: 'LLM Assistant'
         },
-        target: 'itemPane',
-        order: 999,  // Add at the end, after notes
-        onRender: function(container, data) {
-          // Render the LLM assistant UI
-          var html = `
-            <div style="padding: 10px;">
-              <h3 style="margin-top: 0; font-size: 14px;">LLM Assistant</h3>
-              <p style="color: #666;">Interact with ChatGPT, Claude, and other LLMs</p>
-              <button onclick="alert('LLM Assistant coming soon!')">Start Chat</button>
-            </div>
-          `;
-          container.innerHTML = html;
+        
+        // Show for regular items, not notes or attachments
+        onInit: ({ item, editable, tabType }) => {
+          return item && !item.isNote() && !item.isAttachment();
+        },
+        
+        // Render the section content
+        onRender: ({ body, item, editable, tabType }) => {
+          // Clear previous content
+          body.innerHTML = '';
+          
+          // Create container
+          const container = document.createElement('div');
+          container.style.padding = '10px';
+          container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+          
+          if (!item) {
+            container.textContent = 'No item selected';
+            body.appendChild(container);
+            return;
+          }
+          
+          // Create header
+          const header = document.createElement('h3');
+          header.textContent = 'LLM Assistant';
+          header.style.marginTop = '0';
+          header.style.marginBottom = '10px';
+          header.style.fontSize = '14px';
+          container.appendChild(header);
+          
+          // Create description
+          const desc = document.createElement('p');
+          desc.textContent = 'Interact with ChatGPT, Claude, and other LLMs';
+          desc.style.color = '#666';
+          desc.style.marginBottom = '15px';
+          container.appendChild(desc);
+          
+          // Create button
+          const button = document.createElement('button');
+          button.textContent = 'Start Chat';
+          button.style.padding = '6px 12px';
+          button.style.fontSize = '13px';
+          button.style.cursor = 'pointer';
+          button.onclick = () => {
+            Zotero.log("LLM Assistant: Start Chat clicked for item " + item.id);
+            alert('LLM Assistant coming soon!');
+          };
+          container.appendChild(button);
+          
+          body.appendChild(container);
+        },
+        
+        // Called when item changes
+        onItemChange: ({ item, setEnabled }) => {
+          if (item && (item.isNote() || item.isAttachment())) {
+            setEnabled(false);
+          } else {
+            setEnabled(true);
+          }
+        },
+        
+        // Cleanup
+        onDestroy: () => {
+          Zotero.log('LLM Assistant section destroyed');
         }
       });
       
-      Zotero.log("LLM Assistant section added to item pane");
+      Zotero.log("LLM Assistant section registered successfully");
     } catch (e) {
-      Zotero.log("Error adding section: " + e);
+      Zotero.log("Error registering section: " + e);
     }
   }
-};
+  
+  // Unregister the section
+  unregister() {
+    Zotero.ItemPaneManager.unregisterSection(this.sectionID);
+  }
+}
 
-// Make globally accessible if needed
-Zotero.LLMAssistant = LLMAssistant;
-
-// Initialize with rootURI passed from bootstrap context
+// Initialize section
+var llmAssistantSection;
 if (typeof rootURI !== 'undefined') {
-  LLMAssistant.init(rootURI);
+  llmAssistantSection = new LLMAssistantSection(rootURI);
+  llmAssistantSection.init();
+  
+  // Make accessible globally
+  Zotero.LLMAssistant = {
+    section: llmAssistantSection
+  };
 }
 
 
