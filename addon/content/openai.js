@@ -6,22 +6,21 @@
 // OpenAI API configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Available GPT models
+// Available GPT models with their max PDF text length (in characters)
+// Based on context window sizes: GPT-4 (8k tokens), GPT-4 Turbo (128k tokens), GPT-4o (200k tokens)
+// Using ~60% of context window for PDF text, leaving room for system messages, user messages, and responses
+// 1 token ≈ 4 characters for English text
 const AVAILABLE_MODELS = [
-  // GPT-5 Series (Latest)
-  { id: 'gpt-5', name: 'GPT-5', description: 'Flagship model, excels in coding and complex tasks' },
-  { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Smaller, faster variant with lower latency' },
-  { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Compact version, minimal resource usage' },
+  // GPT-5 Series (Latest) - Estimated large context windows (if/when available)
+  { id: 'gpt-5', name: 'GPT-5', description: 'Flagship model, excels in coding and complex tasks', maxPDFLength: 600000 },
+  { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Smaller, faster variant with lower latency', maxPDFLength: 400000 },
+  { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Compact version, minimal resource usage', maxPDFLength: 200000 },
   
   // GPT-4 Series
-  { id: 'gpt-4o', name: 'GPT-4o', description: 'Most capable model with multimodal support' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and cost-effective' },
-  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Fast GPT-4 with longer context' },
-  { id: 'gpt-4', name: 'GPT-4', description: 'High-quality responses' },
-  
-  // GPT-3.5 Series
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and affordable' },
-  { id: 'gpt-3.5-turbo-16k', name: 'GPT-3.5 Turbo 16k', description: 'Longer context window' }
+  { id: 'gpt-4o', name: 'GPT-4o', description: 'Most capable model with multimodal support (200k tokens)', maxPDFLength: 480000 },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and cost-effective (128k tokens)', maxPDFLength: 300000 },
+  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Fast GPT-4 with longer context (128k tokens)', maxPDFLength: 300000 },
+  { id: 'gpt-4', name: 'GPT-4', description: 'High-quality responses (8k tokens)', maxPDFLength: 20000 }
 ];
 
 // Get API key from Zotero preferences
@@ -95,6 +94,20 @@ function setSelectedModel(model) {
   }
 }
 
+// Get the display name for the selected model
+function getSelectedModelName() {
+  const selectedModel = getSelectedModel();
+  const model = AVAILABLE_MODELS.find(m => m.id === selectedModel);
+  return model ? model.name : selectedModel;
+}
+
+// Get the max PDF length for the selected model
+function getSelectedModelMaxPDFLength() {
+  const selectedModel = getSelectedModel();
+  const model = AVAILABLE_MODELS.find(m => m.id === selectedModel);
+  return model && model.maxPDFLength ? model.maxPDFLength : 100000; // Default to 100k if not found
+}
+
 // Function to call OpenAI API
 async function callOpenAI(message, item, messageHistory = [], pdfText = null) {
   const apiKey = getAPIKey();
@@ -113,41 +126,38 @@ Year: ${item.getField('date') || 'Unknown'}`;
   // Build messages array with system message, history, and current message
   const messages = [];
   
-  // Add system message with item context (only if no history exists)
-  if (messageHistory.length === 0) {
-    let systemContent = `You are helping analyze a Zotero reference item. Here's the item information:
+  // Always add system message with item context and PDF content
+  // This ensures PDF context is available throughout the conversation
+  let systemContent = `You are helping analyze a Zotero reference item. Here's the item information:
 
 ${itemContext}`;
+  
+  // Add PDF content if available
+  if (pdfText) {
+    // Truncate PDF text if too long (model-specific limit to stay within token limits)
+    const maxPDFLength = getSelectedModelMaxPDFLength();
+    const pdfContent = pdfText.length > maxPDFLength 
+      ? pdfText.substring(pdfText.length - maxPDFLength) + '\n\n[Note: PDF text truncated - showing last portion]'
+      : pdfText;
     
-    // Add PDF content if available
-    if (pdfText) {
-      // Truncate PDF text if too long (keep last ~100k characters to stay within token limits)
-      const maxPDFLength = 100000;
-      const pdfContent = pdfText.length > maxPDFLength 
-        ? pdfText.substring(pdfText.length - maxPDFLength) + '\n\n[Note: PDF text truncated - showing last portion]'
-        : pdfText;
-      
-      if (pdfText.length > maxPDFLength) {
-        Zotero.log(`PDF/HTML text truncated from ${pdfText.length} to ${maxPDFLength} characters`);
-      }
-      
-      systemContent += `\n\nThe following is the full text content from PDF/HTML attachments associated with this item:\n\n${pdfContent}`;
-    } else {
-      const pdfAttachments = getPDFAttachments(item);
-      if (pdfAttachments.length > 0) {
-        systemContent += `\n\nNote: This item has ${pdfAttachments.length} PDF/HTML attachment(s), but the text could not be automatically extracted. You can still answer questions about the item metadata.`;
-      }
+    if (pdfText.length > maxPDFLength) {
+      Zotero.log(`PDF/HTML text truncated from ${pdfText.length} to ${maxPDFLength} characters for model ${selectedModel}`);
     }
     
-    systemContent += '\n\nPlease provide helpful responses about this item.';
-
-    // Zotero.log("System content: " + systemContent);
-    
-    messages.push({
-      role: 'system',
-      content: systemContent
-    });
+    systemContent += `\n\nThe following is the full text content from PDF/HTML attachments associated with this item:\n\n${pdfContent}`;
+  } else {
+    const pdfAttachments = getPDFAttachments(item);
+    if (pdfAttachments.length > 0) {
+      systemContent += `\n\nNote: This item has ${pdfAttachments.length} PDF/HTML attachment(s), but the text could not be automatically extracted. You can still answer questions about the item metadata.`;
+    }
   }
+  
+  systemContent += '\n\nPlease provide helpful responses about this item.';
+  
+  messages.push({
+    role: 'system',
+    content: systemContent
+  });
   
   // Add message history
   messages.push(...messageHistory);
@@ -157,6 +167,16 @@ ${itemContext}`;
     role: 'user',
     content: message
   });
+  
+  // Calculate and log context usage for entire message history
+  const totalMessageLength = messages.reduce((total, msg) => {
+    return total + (msg.content ? msg.content.length : 0);
+  }, 0);
+  
+  const maxContextLength = getSelectedModelMaxPDFLength();
+  const contextUsagePercent = Math.round((totalMessageLength / maxContextLength) * 100);
+  
+  Zotero.log(`Context usage for ${selectedModel}: ${totalMessageLength.toLocaleString()} / ${maxContextLength.toLocaleString()} characters (${contextUsagePercent}%)`);
 
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -178,7 +198,7 @@ ${itemContext}`;
   }
 
   const data = await response.json();
-  Zotero.log("API Response data: " + JSON.stringify(data));
+//   Zotero.log("API Response data: " + JSON.stringify(data));
   
   if (!data.choices || !data.choices[0] || !data.choices[0].message) {
     Zotero.log("Unexpected response structure: " + JSON.stringify(data));

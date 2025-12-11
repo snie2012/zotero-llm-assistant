@@ -101,11 +101,12 @@ class LLMAssistantSection {
                });
              } else {
                // Restore previous messages
+               const modelName = getSelectedModelName();
                history.forEach(msg => {
                  const msgDiv = body.ownerDocument.createElement('div');
                  msgDiv.style.cssText = 'margin-bottom: 10px; padding: 5px; background: ' + 
                    (msg.role === 'user' ? '#f0f0f0' : '#e0e0e0') + ';';
-                 msgDiv.textContent = (msg.role === 'user' ? 'You: ' : 'Assistant: ') + msg.content;
+                 msgDiv.textContent = (msg.role === 'user' ? 'You: ' : modelName + ': ') + msg.content;
                  messagesArea.appendChild(msgDiv);
                });
              }
@@ -237,10 +238,13 @@ class LLMAssistantSection {
              // Clear input
              input.value = '';
              
+             // Get current model name
+             const modelName = getSelectedModelName();
+             
              // Add loading message
              const loadingMsg = body.ownerDocument.createElement('div');
              loadingMsg.style.cssText = 'margin-bottom: 10px; padding: 5px; background: #e0e0e0;';
-             loadingMsg.textContent = 'Assistant: Thinking...';
+             loadingMsg.textContent = modelName + ': Typing...';
              messagesArea.appendChild(loadingMsg);
              
              try {
@@ -251,11 +255,11 @@ class LLMAssistantSection {
                const response = await callOpenAI(message, item, history.slice(0, -1), pdfText); // Pass history without current message
                const assistantMessage = { role: 'assistant', content: response };
                history.push(assistantMessage);
-               loadingMsg.textContent = 'Assistant: ' + response;
+               loadingMsg.textContent = modelName + ': ' + response;
              } catch (e) {
                // Remove user message from history on error
                history.pop();
-               loadingMsg.textContent = 'Assistant: Error - ' + e.message;
+               loadingMsg.textContent = modelName + ': Error - ' + e.message;
              }
              
              messagesArea.scrollTop = messagesArea.scrollHeight;
