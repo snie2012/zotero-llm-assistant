@@ -242,6 +242,7 @@ class LLMAssistantSection {
           const showSettings = () => {
             const apiKey = getAPIKey() || '';
             const selectedModel = getSelectedModel();
+            const reasoningConfig = getReasoningConfig();
             
             // Create a simple input dialog
             const inputDialog = body.ownerDocument.createElement('div');
@@ -274,6 +275,56 @@ class LLMAssistantSection {
               modelSelect.appendChild(option);
             });
             
+            // Reasoning effort control
+            const reasoningEffortLabel = body.ownerDocument.createElement('label');
+            reasoningEffortLabel.className = 'llm-dialog-label';
+            reasoningEffortLabel.textContent = 'Reasoning Effort:';
+            
+            const reasoningEffortSelect = body.ownerDocument.createElement('select');
+            reasoningEffortSelect.className = 'llm-dialog-select';
+            
+            const effortOptions = [
+              { value: 'none', text: 'Disabled' },
+              { value: 'low', text: 'Low' },
+              { value: 'medium', text: 'Medium' },
+              { value: 'high', text: 'High' }
+            ];
+            
+            effortOptions.forEach(opt => {
+              const option = body.ownerDocument.createElement('option');
+              option.value = opt.value;
+              option.textContent = opt.text;
+              if ((reasoningConfig && reasoningConfig.effort === opt.value) || (!reasoningConfig && opt.value === 'none')) {
+                option.selected = true;
+              }
+              reasoningEffortSelect.appendChild(option);
+            });
+            
+            // Reasoning summary control
+            const reasoningSummaryLabel = body.ownerDocument.createElement('label');
+            reasoningSummaryLabel.className = 'llm-dialog-label';
+            reasoningSummaryLabel.textContent = 'Reasoning Summary:';
+            
+            const reasoningSummarySelect = body.ownerDocument.createElement('select');
+            reasoningSummarySelect.className = 'llm-dialog-select';
+            
+            const summaryOptions = [
+              { value: 'none', text: 'Disabled' },
+              { value: 'auto', text: 'Auto' },
+              { value: 'concise', text: 'Concise' },
+              { value: 'detailed', text: 'Detailed' }
+            ];
+            
+            summaryOptions.forEach(opt => {
+              const option = body.ownerDocument.createElement('option');
+              option.value = opt.value;
+              option.textContent = opt.text;
+              if ((reasoningConfig && reasoningConfig.summary === opt.value) || (!reasoningConfig && opt.value === 'none')) {
+                option.selected = true;
+              }
+              reasoningSummarySelect.appendChild(option);
+            });
+            
             const buttonArea = body.ownerDocument.createElement('div');
             buttonArea.className = 'llm-dialog-buttons';
             
@@ -292,8 +343,10 @@ class LLMAssistantSection {
             saveBtn.addEventListener('click', () => {
               const apiKeySaved = setAPIKey(apiKeyInput.value);
               const modelSaved = setSelectedModel(modelSelect.value);
+              const effortSaved = setReasoningEffort(reasoningEffortSelect.value);
+              const summarySaved = setReasoningSummary(reasoningSummarySelect.value);
               
-              if (apiKeySaved && modelSaved) {
+              if (apiKeySaved && modelSaved && effortSaved && summarySaved) {
                 Zotero.log('Settings saved successfully');
                 closeDialog();
                 // Refresh the messages area to show updated status
@@ -315,6 +368,10 @@ class LLMAssistantSection {
             inputDialog.appendChild(apiKeyInput);
             inputDialog.appendChild(modelLabel);
             inputDialog.appendChild(modelSelect);
+            inputDialog.appendChild(reasoningEffortLabel);
+            inputDialog.appendChild(reasoningEffortSelect);
+            inputDialog.appendChild(reasoningSummaryLabel);
+            inputDialog.appendChild(reasoningSummarySelect);
             buttonArea.appendChild(saveBtn);
             buttonArea.appendChild(cancelBtn);
             inputDialog.appendChild(buttonArea);
