@@ -98,7 +98,7 @@ function setSelectedModel(model) {
 }
 
 // Function to call OpenAI API
-async function callOpenAI(message, item) {
+async function callOpenAI(message, item, messageHistory = []) {
   const apiKey = getAPIKey();
   if (!apiKey) {
     throw new Error('OpenAI API key not configured. Please set it in Zotero preferences.');
@@ -112,13 +112,29 @@ Type: ${item.itemType}
 Authors: ${item.getCreators().map(c => c.lastName + ', ' + c.firstName).join('; ')}
 Year: ${item.getField('date') || 'Unknown'}`;
   
-  const prompt = `You are helping analyze a Zotero reference item. Here's the item information:
+  // Build messages array with system message, history, and current message
+  const messages = [];
+  
+  // Add system message with item context (only if no history exists)
+  if (messageHistory.length === 0) {
+    messages.push({
+      role: 'system',
+      content: `You are helping analyze a Zotero reference item. Here's the item information:
 
 ${itemContext}
 
-User question: ${message}
-
-Please provide a helpful response about this item.`;
+Please provide helpful responses about this item.`
+    });
+  }
+  
+  // Add message history
+  messages.push(...messageHistory);
+  
+  // Add current user message
+  messages.push({
+    role: 'user',
+    content: message
+  });
 
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -128,9 +144,7 @@ Please provide a helpful response about this item.`;
     },
     body: JSON.stringify({
       model: selectedModel,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages: messages,
       max_completion_tokens: selectedModel.startsWith('gpt-5') ? 2000 : 500,
       ...(selectedModel.startsWith('gpt-5') ? {} : { temperature: 0.7 })
     })
@@ -160,6 +174,8 @@ class LLMAssistantSection {
     this.rootURI = rootURI;
     this.sectionID = 'llm-assistant-section';
     this.pluginID = 'zotero-llm-assistant@snie2012.com';
+    // Store message history per item (keyed by item ID)
+    this.messageHistory = new Map();
   }
 
   // Initialize the section
@@ -187,6 +203,13 @@ class LLMAssistantSection {
              return;
            }
            
+           // Get or initialize message history for this item
+           const itemID = item.id;
+           if (!this.messageHistory.has(itemID)) {
+             this.messageHistory.set(itemID, []);
+           }
+           const history = this.messageHistory.get(itemID);
+           
            // Create chat UI
            const container = body.ownerDocument.createElement('div');
            container.style.cssText = 'display: flex; flex-direction: column; height: 100%;';
@@ -199,7 +222,18 @@ class LLMAssistantSection {
            // Check API key status
            const apiKey = getAPIKey();
            if (apiKey) {
-             messagesArea.textContent = 'Welcome! Ask me about this item.';
+             if (history.length === 0) {
+               messagesArea.textContent = 'Welcome! Ask me about this item.';
+             } else {
+               // Restore previous messages
+               history.forEach(msg => {
+                 const msgDiv = body.ownerDocument.createElement('div');
+                 msgDiv.style.cssText = 'margin-bottom: 10px; padding: 5px; background: ' + 
+                   (msg.role === 'user' ? '#f0f0f0' : '#e0e0e0') + ';';
+                 msgDiv.textContent = (msg.role === 'user' ? 'You: ' : 'Assistant: ') + msg.content;
+                 messagesArea.appendChild(msgDiv);
+               });
+             }
            } else {
              messagesArea.textContent = '⚠️ Please configure your OpenAI API key using the settings button (⚙️) to start chatting.';
            }
@@ -315,7 +349,11 @@ class LLMAssistantSection {
              const message = input.value.trim();
              if (!message) return;
              
-             // Add user message
+             // Add user message to history
+             const userMessage = { role: 'user', content: message };
+             history.push(userMessage);
+             
+             // Add user message to UI
              const userMsg = body.ownerDocument.createElement('div');
              userMsg.style.cssText = 'margin-bottom: 10px; padding: 5px; background: #f0f0f0;';
              userMsg.textContent = 'You: ' + message;
@@ -331,10 +369,14 @@ class LLMAssistantSection {
              messagesArea.appendChild(loadingMsg);
              
              try {
-               // Call OpenAI API
-               const response = await callOpenAI(message, item);
+               // Call OpenAI API with message history
+               const response = await callOpenAI(message, item, history.slice(0, -1)); // Pass history without current message
+               const assistantMessage = { role: 'assistant', content: response };
+               history.push(assistantMessage);
                loadingMsg.textContent = 'Assistant: ' + response;
              } catch (e) {
+               // Remove user message from history on error
+               history.pop();
                loadingMsg.textContent = 'Assistant: Error - ' + e.message;
              }
              
