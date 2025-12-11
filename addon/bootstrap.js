@@ -79,9 +79,9 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     rootURI + "content/pdf.js",
     ctx
   );
-  // Load OpenAI module
+  // Load ChatGPT module
   Services.scriptloader.loadSubScript(
-    rootURI + "content/openai.js",
+    rootURI + "content/chatgpt.js",
     ctx
   );
   // Load Claude module

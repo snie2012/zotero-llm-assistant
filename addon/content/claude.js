@@ -105,7 +105,7 @@ function getSelectedClaudeModelMaxPDFLength() {
 // Get max tokens from preferences (Claude uses max_tokens instead of max_output_tokens)
 function getClaudeMaxTokens() {
   const tokens = getPref("extensions.zotero-llm-assistant.claude-max-tokens");
-  return tokens ? parseInt(tokens, 10) : 100000; // Default to 100k for Claude
+  return tokens ? parseInt(tokens, 10) : 4096; // Default to 4k for Claude
 }
 
 // Set max tokens preference
