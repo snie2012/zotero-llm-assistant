@@ -128,14 +128,14 @@ ${itemContext}`;
         : pdfText;
       
       if (pdfText.length > maxPDFLength) {
-        Zotero.log(`PDF text truncated from ${pdfText.length} to ${maxPDFLength} characters`);
+        Zotero.log(`PDF/HTML text truncated from ${pdfText.length} to ${maxPDFLength} characters`);
       }
       
-      systemContent += `\n\nThe following is the full text content from PDF attachments associated with this item:\n\n${pdfContent}`;
+      systemContent += `\n\nThe following is the full text content from PDF/HTML attachments associated with this item:\n\n${pdfContent}`;
     } else {
       const pdfAttachments = getPDFAttachments(item);
       if (pdfAttachments.length > 0) {
-        systemContent += `\n\nNote: This item has ${pdfAttachments.length} PDF attachment(s), but the text could not be automatically extracted. You can still answer questions about the item metadata.`;
+        systemContent += `\n\nNote: This item has ${pdfAttachments.length} PDF/HTML attachment(s), but the text could not be automatically extracted. You can still answer questions about the item metadata.`;
       }
     }
     

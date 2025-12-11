@@ -76,8 +76,11 @@ zotero-llm-assistant/
 - [x] LLM-powered research assistant
 - [x] Basic QA
 - [x] Read pdf text into context by default
+- [x] Read html text into context by default
 - [ ] Context compression
 - [ ] Quick answer for selected text
+- [ ] UI improvements
+- [ ] Support search API
 
 
 ## License

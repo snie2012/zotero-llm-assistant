@@ -75,29 +75,29 @@ class LLMAssistantSection {
            const apiKey = getAPIKey();
            if (apiKey) {
              if (history.length === 0) {
-               // Check for PDF attachments
+               // Check for PDF/HTML attachments
                const pdfAttachments = getPDFAttachments(item);
                let welcomeMsg = 'Welcome! Ask me about this item.';
                if (pdfAttachments.length > 0) {
-                 welcomeMsg += `\n\n📄 Found ${pdfAttachments.length} PDF attachment(s). Extracting text...`;
+                 welcomeMsg += `\n\n📄 Found ${pdfAttachments.length} PDF/HTML attachment(s). Extracting text...`;
                }
                messagesArea.textContent = welcomeMsg;
                
-               // Load PDF text in background
+               // Load PDF/HTML text in background
                getPDFTextForItem(item, this.pdfTextCache).then(pdfText => {
                  if (pdfText) {
                    // Update welcome message if still showing
                    if (messagesArea.textContent.includes('Extracting text')) {
-                     messagesArea.textContent = `Welcome! Ask me about this item.\n\n📄 PDF text loaded (${Math.round(pdfText.length / 1000)}k characters). You can ask questions about the PDF content.`;
+                     messagesArea.textContent = `Welcome! Ask me about this item.\n\n📄 PDF/HTML text loaded (${Math.round(pdfText.length / 1000)}k characters). You can ask questions about the content.`;
                    }
                  } else if (pdfAttachments.length > 0) {
                    // Update message if extraction failed
                    if (messagesArea.textContent.includes('Extracting text')) {
-                     messagesArea.textContent = `Welcome! Ask me about this item.\n\n⚠️ PDF attachment(s) found but text extraction was not successful. You can still ask about the item metadata.`;
+                     messagesArea.textContent = `Welcome! Ask me about this item.\n\n⚠️ PDF/HTML attachment(s) found but text extraction was not successful. You can still ask about the item metadata.`;
                    }
                  }
                }).catch(e => {
-                 Zotero.log("Error loading PDF text: " + e);
+                 Zotero.log("Error loading PDF/HTML text: " + e);
                });
              } else {
                // Restore previous messages
