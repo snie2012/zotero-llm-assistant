@@ -18,12 +18,68 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
 
   // Load modules with rootURI
   var ctx = { rootURI: rootURI };
-  // Load PDF module first
+  
+  // Load marked library first (needed for markdown rendering)
+  try {
+    Services.scriptloader.loadSubScript(
+      rootURI + "content/lib/marked.min.js",
+      ctx
+    );
+    // Configure marked options if available
+    if (typeof marked !== 'undefined') {
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+        headerIds: true,
+        mangle: false
+      });
+      Zotero.log("Marked library loaded successfully in bootstrap");
+    }
+  } catch (e) {
+    Zotero.log("Warning: Could not load marked library in bootstrap: " + e);
+  }
+
+  // Load MathJax library (needed for LaTeX rendering)
+  try {
+    // Configure MathJax before loading (in global scope)
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process|llm-markdown-content'
+      },
+      startup: {
+        pageReady: () => {
+          return MathJax.startup.defaultPageReady();
+        }
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    Services.scriptloader.loadSubScript(
+      rootURI + "content/lib/mathjax.min.js",
+      ctx
+    );
+    if (typeof MathJax !== 'undefined') {
+      Zotero.log("MathJax library loaded successfully in bootstrap");
+    }
+  } catch (e) {
+    Zotero.log("Warning: Could not load MathJax library in bootstrap: " + e);
+  }
+  
+  // Load PDF module
   Services.scriptloader.loadSubScript(
     rootURI + "content/pdf.js",
     ctx
   );
-  // Load OpenAI module second
+  // Load OpenAI module
   Services.scriptloader.loadSubScript(
     rootURI + "content/openai.js",
     ctx
