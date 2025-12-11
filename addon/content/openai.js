@@ -126,15 +126,13 @@ Year: ${item.getField('date') || 'Unknown'}`;
   // Build messages array with system message, history, and current message
   const messages = [];
   
-  // Always add system message with item context and PDF content
-  // This ensures PDF context is available throughout the conversation
+  // Always add system message with item context
   let systemContent = `You are helping analyze a Zotero reference item. Here's the item information:
 
 ${itemContext}`;
   
-  // Add PDF content if available
+  // Include PDF/HTML text if available
   if (pdfText) {
-    // Truncate PDF text if too long (model-specific limit to stay within token limits)
     const maxPDFLength = getSelectedModelMaxPDFLength();
     const pdfContent = pdfText.length > maxPDFLength 
       ? pdfText.substring(pdfText.length - maxPDFLength) + '\n\n[Note: PDF text truncated - showing last portion]'
@@ -145,11 +143,6 @@ ${itemContext}`;
     }
     
     systemContent += `\n\nThe following is the full text content from PDF/HTML attachments associated with this item:\n\n${pdfContent}`;
-  } else {
-    const pdfAttachments = getPDFAttachments(item);
-    if (pdfAttachments.length > 0) {
-      systemContent += `\n\nNote: This item has ${pdfAttachments.length} PDF/HTML attachment(s), but the text could not be automatically extracted. You can still answer questions about the item metadata.`;
-    }
   }
   
   systemContent += '\n\nPlease provide helpful responses about this item.';
@@ -170,7 +163,10 @@ ${itemContext}`;
   
   // Calculate and log context usage for entire message history
   const totalMessageLength = messages.reduce((total, msg) => {
-    return total + (msg.content ? msg.content.length : 0);
+    if (typeof msg.content === 'string') {
+      return total + msg.content.length;
+    }
+    return total;
   }, 0);
   
   const maxContextLength = getSelectedModelMaxPDFLength();

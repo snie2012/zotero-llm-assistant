@@ -78,11 +78,12 @@ zotero-llm-assistant/
 - [x] Read pdf text into context by default
 - [x] Read html text into context by default
 - [x] Markdown rendering
-- [x] Latex rendering (Mathjax)
+- [ ] Latex rendering (Mathjax)
 - [ ] Context compression
 - [ ] Quick answer for selected text
 - [ ] UI improvements
 - [ ] Support search API
+- [ ] Support files API
 
 
 ## License
