@@ -7,14 +7,12 @@
 const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 
 // Available GPT models with their max PDF text length (in characters)
-// Based on context window sizes for GPT-5 series
+// Based on context window sizes for GPT-5.1 series
 // Using ~60% of context window for PDF text, leaving room for system messages, user messages, and responses
 // 1 token ≈ 4 characters for English text
 const AVAILABLE_MODELS = [
-  // GPT-5 Series
-  { id: 'gpt-5', name: 'GPT-5', description: 'Flagship model, excels in coding and complex tasks', maxPDFLength: 600000 },
-  { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Smaller, faster variant with lower latency', maxPDFLength: 400000 },
-  { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Compact version, minimal resource usage', maxPDFLength: 200000 }
+  // GPT-5.1 Series
+  { id: 'gpt-5.1', name: 'GPT-5.1', description: 'Flagship model, excels in coding and complex tasks', maxPDFLength: 600000 }
 ];
 
 // Helper function to get preferences branch
@@ -75,7 +73,7 @@ function setAPIKey(key) {
 
 // Get selected model from Zotero preferences
 function getSelectedModel() {
-  const model = getPref("extensions.zotero-llm-assistant.selected-model", 'gpt-5');
+  const model = getPref("extensions.zotero-llm-assistant.selected-model", 'gpt-5.1');
   Zotero.log(`Selected model: ${model}`);
   return model;
 }
@@ -104,15 +102,25 @@ function getSelectedModelMaxPDFLength() {
 }
 
 // Get reasoning configuration from preferences
+// GPT-5.1 supports 'none' to disable reasoning, or 'low', 'medium', 'high'
+// Defaults to 'none' (disabled) if not configured
 function getReasoningConfig() {
   const effort = getPref("extensions.zotero-llm-assistant.reasoning-effort");
   const summary = getPref("extensions.zotero-llm-assistant.reasoning-summary");
   
-  const reasoning = {};
-  if (effort && effort !== "none") reasoning.effort = effort;
-  if (summary && summary !== "none") reasoning.summary = summary;
+  // Default to 'none' (disabled) if not set, otherwise use the configured value
+  const reasoning = {
+    effort: effort || "none"
+  };
   
-  return Object.keys(reasoning).length > 0 ? reasoning : null;
+  // Only add summary if explicitly set
+  if (summary && summary !== "none") {
+    reasoning.summary = summary;
+  }
+  
+  // If effort is 'none', we can omit the reasoning parameter entirely or keep it
+  // For GPT-5.1, setting effort to 'none' explicitly disables reasoning
+  return reasoning;
 }
 
 // Set reasoning effort preference
@@ -131,6 +139,38 @@ function setReasoningSummary(summary) {
     summary && summary !== "none" ? summary : null);
   if (success) {
     Zotero.log(`Reasoning summary preference saved: ${summary || "disabled"}`);
+  }
+  return success;
+}
+
+// Get max output tokens from preferences
+function getMaxOutputTokens() {
+  const tokens = getPref("extensions.zotero-llm-assistant.max-output-tokens");
+  return tokens ? parseInt(tokens, 10) : 10000; // Default to 10k
+}
+
+// Set max output tokens preference
+function setMaxOutputTokens(tokens) {
+  const success = setPref("extensions.zotero-llm-assistant.max-output-tokens", 
+    tokens && tokens > 0 ? tokens.toString() : null);
+  if (success) {
+    Zotero.log(`Max output tokens preference saved: ${tokens || "default"}`);
+  }
+  return success;
+}
+
+// Get temperature from preferences
+function getTemperature() {
+  const temp = getPref("extensions.zotero-llm-assistant.temperature");
+  return temp ? parseFloat(temp) : 0.6; // Default to 0.6
+}
+
+// Set temperature preference
+function setTemperature(temperature) {
+  const success = setPref("extensions.zotero-llm-assistant.temperature", 
+    temperature !== null && temperature !== undefined ? temperature.toString() : null);
+  if (success) {
+    Zotero.log(`Temperature preference saved: ${temperature || "default"}`);
   }
   return success;
 }
@@ -201,20 +241,20 @@ ${itemContext}`;
   
   Zotero.log(`Context usage for ${selectedModel}: ${totalMessageLength.toLocaleString()} / ${maxContextLength.toLocaleString()} characters (${contextUsagePercent}%)`);
 
-  // Get reasoning configuration if enabled
+  // Get reasoning configuration (always includes at least default low effort)
   const reasoningConfig = getReasoningConfig();
+  
+  // Get configurable parameters
+  const maxOutputTokens = getMaxOutputTokens();
+  const temperature = getTemperature();
   
   const requestBody = {
     model: selectedModel,
     input: messages,
-    max_output_tokens: 2000,
-    temperature: 1
+    max_output_tokens: maxOutputTokens,
+    temperature: temperature,
+    reasoning: reasoningConfig
   };
-  
-  // Add reasoning parameter if configured
-  if (reasoningConfig) {
-    requestBody.reasoning = reasoningConfig;
-  }
   
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',

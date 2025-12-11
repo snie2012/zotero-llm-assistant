@@ -243,6 +243,8 @@ class LLMAssistantSection {
             const apiKey = getAPIKey() || '';
             const selectedModel = getSelectedModel();
             const reasoningConfig = getReasoningConfig();
+            const maxOutputTokens = getMaxOutputTokens();
+            const temperature = getTemperature();
             
             // Create a simple input dialog
             const inputDialog = body.ownerDocument.createElement('div');
@@ -284,7 +286,7 @@ class LLMAssistantSection {
             reasoningEffortSelect.className = 'llm-dialog-select';
             
             const effortOptions = [
-              { value: 'none', text: 'Disabled' },
+              { value: 'none', text: 'Disabled (None)' },
               { value: 'low', text: 'Low' },
               { value: 'medium', text: 'Medium' },
               { value: 'high', text: 'High' }
@@ -294,7 +296,8 @@ class LLMAssistantSection {
               const option = body.ownerDocument.createElement('option');
               option.value = opt.value;
               option.textContent = opt.text;
-              if ((reasoningConfig && reasoningConfig.effort === opt.value) || (!reasoningConfig && opt.value === 'none')) {
+              const currentEffort = reasoningConfig?.effort || 'none';
+              if (currentEffort === opt.value) {
                 option.selected = true;
               }
               reasoningEffortSelect.appendChild(option);
@@ -325,6 +328,32 @@ class LLMAssistantSection {
               reasoningSummarySelect.appendChild(option);
             });
             
+            // Max output tokens control
+            const maxTokensLabel = body.ownerDocument.createElement('label');
+            maxTokensLabel.className = 'llm-dialog-label';
+            maxTokensLabel.textContent = 'Max Output Tokens:';
+            
+            const maxTokensInput = body.ownerDocument.createElement('input');
+            maxTokensInput.type = 'number';
+            maxTokensInput.className = 'llm-dialog-input';
+            maxTokensInput.value = maxOutputTokens;
+            maxTokensInput.min = 1;
+            maxTokensInput.placeholder = '10000';
+            
+            // Temperature control
+            const temperatureLabel = body.ownerDocument.createElement('label');
+            temperatureLabel.className = 'llm-dialog-label';
+            temperatureLabel.textContent = 'Temperature:';
+            
+            const temperatureInput = body.ownerDocument.createElement('input');
+            temperatureInput.type = 'number';
+            temperatureInput.className = 'llm-dialog-input';
+            temperatureInput.value = temperature;
+            temperatureInput.min = 0;
+            temperatureInput.max = 2;
+            temperatureInput.step = 0.1;
+            temperatureInput.placeholder = '0.6';
+            
             const buttonArea = body.ownerDocument.createElement('div');
             buttonArea.className = 'llm-dialog-buttons';
             
@@ -345,8 +374,10 @@ class LLMAssistantSection {
               const modelSaved = setSelectedModel(modelSelect.value);
               const effortSaved = setReasoningEffort(reasoningEffortSelect.value);
               const summarySaved = setReasoningSummary(reasoningSummarySelect.value);
+              const maxTokensSaved = setMaxOutputTokens(parseInt(maxTokensInput.value, 10));
+              const temperatureSaved = setTemperature(parseFloat(temperatureInput.value));
               
-              if (apiKeySaved && modelSaved && effortSaved && summarySaved) {
+              if (apiKeySaved && modelSaved && effortSaved && summarySaved && maxTokensSaved && temperatureSaved) {
                 Zotero.log('Settings saved successfully');
                 closeDialog();
                 // Refresh the messages area to show updated status
@@ -372,6 +403,10 @@ class LLMAssistantSection {
             inputDialog.appendChild(reasoningEffortSelect);
             inputDialog.appendChild(reasoningSummaryLabel);
             inputDialog.appendChild(reasoningSummarySelect);
+            inputDialog.appendChild(maxTokensLabel);
+            inputDialog.appendChild(maxTokensInput);
+            inputDialog.appendChild(temperatureLabel);
+            inputDialog.appendChild(temperatureInput);
             buttonArea.appendChild(saveBtn);
             buttonArea.appendChild(cancelBtn);
             inputDialog.appendChild(buttonArea);
