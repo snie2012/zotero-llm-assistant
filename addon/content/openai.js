@@ -4,7 +4,7 @@
  */
 
 // OpenAI API configuration
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
 
 // Available GPT models with their max PDF text length (in characters)
 // Based on context window sizes: GPT-4 (8k tokens), GPT-4 Turbo (128k tokens), GPT-4o (200k tokens)
@@ -182,8 +182,8 @@ ${itemContext}`;
     },
     body: JSON.stringify({
       model: selectedModel,
-      messages: messages,
-      max_completion_tokens: selectedModel.startsWith('gpt-5') ? 2000 : 500,
+      input: messages,
+      max_output_tokens: selectedModel.startsWith('gpt-5') ? 2000 : 500,
       ...(selectedModel.startsWith('gpt-5') ? {} : { temperature: 0.7 })
     })
   });
@@ -196,12 +196,20 @@ ${itemContext}`;
   const data = await response.json();
 //   Zotero.log("API Response data: " + JSON.stringify(data));
   
-  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+  // Responses API structure: output is an array, content is an array within output[0]
+  if (!data.output || !data.output[0] || !data.output[0].content || !data.output[0].content[0]) {
     Zotero.log("Unexpected response structure: " + JSON.stringify(data));
     throw new Error("Unexpected API response structure");
   }
   
-  const content = data.choices[0].message.content;
+  // Find the output_text content item
+  const outputTextContent = data.output[0].content.find(item => item.type === "output_text");
+  if (!outputTextContent || !outputTextContent.text) {
+    Zotero.log("No output_text found in response: " + JSON.stringify(data));
+    throw new Error("No output text found in API response");
+  }
+  
+  const content = outputTextContent.text;
 //   Zotero.log("Extracted content: " + content);
   
   return content;
