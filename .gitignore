@@ -2,8 +2,8 @@
 node_modules/
 
 # Build outputs
-dist/
-*.xpi
+# dist/
+# *.xpi
 
 # OS files
 .DS_Store
