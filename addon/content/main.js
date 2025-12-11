@@ -5,6 +5,59 @@
 
 Zotero.log("Zotero LLM Assistant: Main module loaded");
 
+// Helper functions to get current provider and model name
+function getCurrentProvider() {
+  if (typeof getProvider === 'function') {
+    return getProvider();
+  }
+  return 'openai'; // Default
+}
+
+function getCurrentModelName() {
+  const provider = getCurrentProvider();
+  if (provider === 'claude') {
+    if (typeof getSelectedClaudeModelName === 'function') {
+      return getSelectedClaudeModelName();
+    }
+  } else {
+    if (typeof getSelectedModelName === 'function') {
+      return getSelectedModelName();
+    }
+  }
+  return 'Assistant';
+}
+
+function getCurrentAPIKey() {
+  const provider = getCurrentProvider();
+  if (provider === 'claude') {
+    if (typeof getClaudeAPIKey === 'function') {
+      return getClaudeAPIKey();
+    }
+  } else {
+    if (typeof getAPIKey === 'function') {
+      return getAPIKey();
+    }
+  }
+  return null;
+}
+
+async function callLLM(message, item, messageHistory, pdfText) {
+  const provider = getCurrentProvider();
+  if (provider === 'claude') {
+    if (typeof callClaude === 'function') {
+      return await callClaude(message, item, messageHistory, pdfText);
+    } else {
+      throw new Error('Claude API functions not available');
+    }
+  } else {
+    if (typeof callOpenAI === 'function') {
+      return await callOpenAI(message, item, messageHistory, pdfText);
+    } else {
+      throw new Error('OpenAI API functions not available');
+    }
+  }
+}
+
 const loadCSS = async (doc, rootURI) => {
   if (doc.getElementById('llm-assistant-styles')) return;
   
@@ -196,7 +249,7 @@ class LLMAssistantSection {
           }, true);
           
           // Check API key status
-          const apiKey = getAPIKey();
+          const apiKey = getCurrentAPIKey();
           if (apiKey) {
             if (history.length === 0) {
               // Check for PDF/HTML attachments
@@ -225,7 +278,7 @@ class LLMAssistantSection {
               });
             } else {
               // Restore previous messages
-              const modelName = getSelectedModelName();
+              const modelName = getCurrentModelName();
               history.forEach(msg => {
                 const msgDiv = body.ownerDocument.createElement('div');
                 msgDiv.className = 'llm-message ' + (msg.role === 'user' ? 'llm-message-user' : 'llm-message-assistant');
@@ -240,7 +293,9 @@ class LLMAssistantSection {
               });
             }
           } else {
-            messagesArea.textContent = '⚠️ Please configure your OpenAI API key using the settings button (⚙️) to start chatting.';
+            const provider = getCurrentProvider();
+            const providerName = provider === 'claude' ? 'Claude' : 'OpenAI';
+            messagesArea.textContent = `⚠️ Please configure your ${providerName} API key using the settings button (⚙️) to start chatting.`;
           }
           
           // Input area
@@ -264,42 +319,178 @@ class LLMAssistantSection {
           
           // Settings dialog
           const showSettings = () => {
-            const apiKey = getAPIKey() || '';
-            const selectedModel = getSelectedModel();
-            const reasoningConfig = getReasoningConfig();
-            const maxOutputTokens = getMaxOutputTokens();
-            const temperature = getTemperature();
+            const currentProvider = getCurrentProvider();
+            const openaiKey = typeof getAPIKey === 'function' ? (getAPIKey() || '') : '';
+            const claudeKey = typeof getClaudeAPIKey === 'function' ? (getClaudeAPIKey() || '') : '';
+            const selectedOpenAIModel = typeof getSelectedModel === 'function' ? getSelectedModel() : 'gpt-5.1';
+            const selectedClaudeModel = typeof getSelectedClaudeModel === 'function' ? getSelectedClaudeModel() : 'claude-sonnet-4-20250514';
+            const reasoningConfig = typeof getReasoningConfig === 'function' ? getReasoningConfig() : null;
+            const maxOutputTokens = typeof getMaxOutputTokens === 'function' ? getMaxOutputTokens() : 10000;
+            const claudeMaxTokens = typeof getClaudeMaxTokens === 'function' ? getClaudeMaxTokens() : 4096;
+            const temperature = typeof getTemperature === 'function' ? getTemperature() : 0.6;
             
             // Create a simple input dialog
             const inputDialog = body.ownerDocument.createElement('div');
             inputDialog.className = 'llm-dialog';
             
-            const apiKeyLabel = body.ownerDocument.createElement('label');
-            apiKeyLabel.className = 'llm-dialog-label';
-            apiKeyLabel.textContent = 'OpenAI API Key:';
+            // Provider selection
+            const providerLabel = body.ownerDocument.createElement('label');
+            providerLabel.className = 'llm-dialog-label';
+            providerLabel.textContent = 'Provider:';
             
-            const apiKeyInput = body.ownerDocument.createElement('input');
-            apiKeyInput.type = 'password';
-            apiKeyInput.className = 'llm-dialog-input';
-            apiKeyInput.value = apiKey;
+            const providerSelect = body.ownerDocument.createElement('select');
+            providerSelect.className = 'llm-dialog-select';
+            providerSelect.id = 'llm-provider-select';
             
-            const modelLabel = body.ownerDocument.createElement('label');
-            modelLabel.className = 'llm-dialog-label';
-            modelLabel.textContent = 'GPT Model:';
+            const openaiOption = body.ownerDocument.createElement('option');
+            openaiOption.value = 'openai';
+            openaiOption.textContent = 'OpenAI';
+            if (currentProvider === 'openai') {
+              openaiOption.selected = true;
+            }
+            providerSelect.appendChild(openaiOption);
             
-            const modelSelect = body.ownerDocument.createElement('select');
-            modelSelect.className = 'llm-dialog-select';
+            const claudeOption = body.ownerDocument.createElement('option');
+            claudeOption.value = 'claude';
+            claudeOption.textContent = 'Anthropic Claude';
+            if (currentProvider === 'claude') {
+              claudeOption.selected = true;
+            }
+            providerSelect.appendChild(claudeOption);
             
-            // Populate model options
-            AVAILABLE_MODELS.forEach(model => {
-              const option = body.ownerDocument.createElement('option');
-              option.value = model.id;
-              option.textContent = model.name;
-              if (model.id === selectedModel) {
-                option.selected = true;
+            // OpenAI API Key
+            const openaiKeyLabel = body.ownerDocument.createElement('label');
+            openaiKeyLabel.className = 'llm-dialog-label';
+            openaiKeyLabel.textContent = 'OpenAI API Key:';
+            openaiKeyLabel.id = 'llm-openai-key-label';
+            
+            const openaiKeyInput = body.ownerDocument.createElement('input');
+            openaiKeyInput.type = 'password';
+            openaiKeyInput.className = 'llm-dialog-input';
+            openaiKeyInput.value = openaiKey;
+            openaiKeyInput.id = 'llm-openai-key-input';
+            
+            // Claude API Key
+            const claudeKeyLabel = body.ownerDocument.createElement('label');
+            claudeKeyLabel.className = 'llm-dialog-label';
+            claudeKeyLabel.textContent = 'Claude API Key:';
+            claudeKeyLabel.id = 'llm-claude-key-label';
+            claudeKeyLabel.style.display = currentProvider === 'claude' ? 'block' : 'none';
+            
+            const claudeKeyInput = body.ownerDocument.createElement('input');
+            claudeKeyInput.type = 'password';
+            claudeKeyInput.className = 'llm-dialog-input';
+            claudeKeyInput.value = claudeKey;
+            claudeKeyInput.id = 'llm-claude-key-input';
+            claudeKeyInput.style.display = currentProvider === 'claude' ? 'block' : 'none';
+            
+            // OpenAI Model selection
+            const openaiModelLabel = body.ownerDocument.createElement('label');
+            openaiModelLabel.className = 'llm-dialog-label';
+            openaiModelLabel.textContent = 'GPT Model:';
+            openaiModelLabel.id = 'llm-openai-model-label';
+            
+            const openaiModelSelect = body.ownerDocument.createElement('select');
+            openaiModelSelect.className = 'llm-dialog-select';
+            openaiModelSelect.id = 'llm-openai-model-select';
+            
+            // Populate OpenAI model options
+            if (typeof AVAILABLE_MODELS !== 'undefined') {
+              AVAILABLE_MODELS.forEach(model => {
+                const option = body.ownerDocument.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                if (model.id === selectedOpenAIModel) {
+                  option.selected = true;
+                }
+                openaiModelSelect.appendChild(option);
+              });
+            }
+            
+            // Claude Model selection
+            const claudeModelLabel = body.ownerDocument.createElement('label');
+            claudeModelLabel.className = 'llm-dialog-label';
+            claudeModelLabel.textContent = 'Claude Model:';
+            claudeModelLabel.id = 'llm-claude-model-label';
+            claudeModelLabel.style.display = currentProvider === 'claude' ? 'block' : 'none';
+            
+            const claudeModelSelect = body.ownerDocument.createElement('select');
+            claudeModelSelect.className = 'llm-dialog-select';
+            claudeModelSelect.id = 'llm-claude-model-select';
+            claudeModelSelect.style.display = currentProvider === 'claude' ? 'block' : 'none';
+            
+            // Populate Claude model options
+            if (typeof AVAILABLE_CLAUDE_MODELS !== 'undefined') {
+              AVAILABLE_CLAUDE_MODELS.forEach(model => {
+                const option = body.ownerDocument.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                if (model.id === selectedClaudeModel) {
+                  option.selected = true;
+                }
+                claudeModelSelect.appendChild(option);
+              });
+            }
+            
+            // Max tokens control (different labels for OpenAI vs Claude)
+            const maxTokensLabel = body.ownerDocument.createElement('label');
+            maxTokensLabel.className = 'llm-dialog-label';
+            maxTokensLabel.textContent = 'Max Output Tokens:';
+            maxTokensLabel.id = 'llm-max-tokens-label';
+            
+            const maxTokensInput = body.ownerDocument.createElement('input');
+            maxTokensInput.type = 'number';
+            maxTokensInput.className = 'llm-dialog-input';
+            maxTokensInput.id = 'llm-max-tokens-input';
+            maxTokensInput.min = 1;
+            maxTokensInput.placeholder = currentProvider === 'claude' ? '4096' : '10000';
+            maxTokensInput.value = currentProvider === 'claude' ? claudeMaxTokens : maxOutputTokens;
+            
+            // Update max tokens label and value when provider changes
+            const updateMaxTokensLabel = () => {
+              const selectedProvider = providerSelect.value;
+              if (selectedProvider === 'claude') {
+                maxTokensLabel.textContent = 'Max Tokens:';
+                maxTokensInput.placeholder = '4096';
+                maxTokensInput.value = claudeMaxTokens;
+              } else {
+                maxTokensLabel.textContent = 'Max Output Tokens:';
+                maxTokensInput.placeholder = '10000';
+                maxTokensInput.value = maxOutputTokens;
               }
-              modelSelect.appendChild(option);
+            };
+            
+            // Update UI when provider changes
+            providerSelect.addEventListener('change', () => {
+              const selectedProvider = providerSelect.value;
+              if (selectedProvider === 'claude') {
+                openaiKeyLabel.style.display = 'none';
+                openaiKeyInput.style.display = 'none';
+                openaiModelLabel.style.display = 'none';
+                openaiModelSelect.style.display = 'none';
+                claudeKeyLabel.style.display = 'block';
+                claudeKeyInput.style.display = 'block';
+                claudeModelLabel.style.display = 'block';
+                claudeModelSelect.style.display = 'block';
+                reasoningContainer.style.display = 'none';
+              } else {
+                openaiKeyLabel.style.display = 'block';
+                openaiKeyInput.style.display = 'block';
+                openaiModelLabel.style.display = 'block';
+                openaiModelSelect.style.display = 'block';
+                claudeKeyLabel.style.display = 'none';
+                claudeKeyInput.style.display = 'none';
+                claudeModelLabel.style.display = 'none';
+                claudeModelSelect.style.display = 'none';
+                reasoningContainer.style.display = 'block';
+              }
+              updateMaxTokensLabel();
             });
+            
+            // Reasoning controls (OpenAI only)
+            const reasoningContainer = body.ownerDocument.createElement('div');
+            reasoningContainer.id = 'llm-reasoning-container';
+            reasoningContainer.style.display = currentProvider === 'openai' ? 'block' : 'none';
             
             // Reasoning effort control
             const reasoningEffortLabel = body.ownerDocument.createElement('label');
@@ -352,17 +543,6 @@ class LLMAssistantSection {
               reasoningSummarySelect.appendChild(option);
             });
             
-            // Max output tokens control
-            const maxTokensLabel = body.ownerDocument.createElement('label');
-            maxTokensLabel.className = 'llm-dialog-label';
-            maxTokensLabel.textContent = 'Max Output Tokens:';
-            
-            const maxTokensInput = body.ownerDocument.createElement('input');
-            maxTokensInput.type = 'number';
-            maxTokensInput.className = 'llm-dialog-input';
-            maxTokensInput.value = maxOutputTokens;
-            maxTokensInput.min = 1;
-            maxTokensInput.placeholder = '10000';
             
             // Temperature control
             const temperatureLabel = body.ownerDocument.createElement('label');
@@ -394,22 +574,59 @@ class LLMAssistantSection {
             };
             
             saveBtn.addEventListener('click', () => {
-              const apiKeySaved = setAPIKey(apiKeyInput.value);
-              const modelSaved = setSelectedModel(modelSelect.value);
-              const effortSaved = setReasoningEffort(reasoningEffortSelect.value);
-              const summarySaved = setReasoningSummary(reasoningSummarySelect.value);
-              const maxTokensSaved = setMaxOutputTokens(parseInt(maxTokensInput.value, 10));
-              const temperatureSaved = setTemperature(parseFloat(temperatureInput.value));
+              const selectedProvider = providerSelect.value;
+              let allSaved = true;
               
-              if (apiKeySaved && modelSaved && effortSaved && summarySaved && maxTokensSaved && temperatureSaved) {
+              // Save provider
+              if (typeof setProvider === 'function') {
+                allSaved = setProvider(selectedProvider) && allSaved;
+              }
+              
+              // Save provider-specific settings
+              if (selectedProvider === 'claude') {
+                if (typeof setClaudeAPIKey === 'function') {
+                  allSaved = setClaudeAPIKey(claudeKeyInput.value) && allSaved;
+                }
+                if (typeof setSelectedClaudeModel === 'function') {
+                  allSaved = setSelectedClaudeModel(claudeModelSelect.value) && allSaved;
+                }
+                if (typeof setClaudeMaxTokens === 'function') {
+                  allSaved = setClaudeMaxTokens(parseInt(maxTokensInput.value, 10)) && allSaved;
+                }
+              } else {
+                if (typeof setAPIKey === 'function') {
+                  allSaved = setAPIKey(openaiKeyInput.value) && allSaved;
+                }
+                if (typeof setSelectedModel === 'function') {
+                  allSaved = setSelectedModel(openaiModelSelect.value) && allSaved;
+                }
+                if (typeof setReasoningEffort === 'function') {
+                  allSaved = setReasoningEffort(reasoningEffortSelect.value) && allSaved;
+                }
+                if (typeof setReasoningSummary === 'function') {
+                  allSaved = setReasoningSummary(reasoningSummarySelect.value) && allSaved;
+                }
+                if (typeof setMaxOutputTokens === 'function') {
+                  allSaved = setMaxOutputTokens(parseInt(maxTokensInput.value, 10)) && allSaved;
+                }
+              }
+              
+              // Save temperature (shared)
+              if (typeof setTemperature === 'function') {
+                allSaved = setTemperature(parseFloat(temperatureInput.value)) && allSaved;
+              }
+              
+              if (allSaved) {
                 Zotero.log('Settings saved successfully');
                 closeDialog();
                 // Refresh the messages area to show updated status
-                const apiKey = getAPIKey();
+                const apiKey = getCurrentAPIKey();
                 if (apiKey) {
                   messagesArea.textContent = 'Welcome! Ask me about this item.';
                 } else {
-                  messagesArea.textContent = '⚠️ Please configure your OpenAI API key using the settings button (⚙️) to start chatting.';
+                  const provider = getCurrentProvider();
+                  const providerName = provider === 'claude' ? 'Claude' : 'OpenAI';
+                  messagesArea.textContent = `⚠️ Please configure your ${providerName} API key using the settings button (⚙️) to start chatting.`;
                 }
               } else {
                 Zotero.log('Failed to save settings');
@@ -419,14 +636,22 @@ class LLMAssistantSection {
             
             cancelBtn.addEventListener('click', closeDialog);
             
-            inputDialog.appendChild(apiKeyLabel);
-            inputDialog.appendChild(apiKeyInput);
-            inputDialog.appendChild(modelLabel);
-            inputDialog.appendChild(modelSelect);
-            inputDialog.appendChild(reasoningEffortLabel);
-            inputDialog.appendChild(reasoningEffortSelect);
-            inputDialog.appendChild(reasoningSummaryLabel);
-            inputDialog.appendChild(reasoningSummarySelect);
+            // Append all elements to dialog
+            inputDialog.appendChild(providerLabel);
+            inputDialog.appendChild(providerSelect);
+            inputDialog.appendChild(openaiKeyLabel);
+            inputDialog.appendChild(openaiKeyInput);
+            inputDialog.appendChild(claudeKeyLabel);
+            inputDialog.appendChild(claudeKeyInput);
+            inputDialog.appendChild(openaiModelLabel);
+            inputDialog.appendChild(openaiModelSelect);
+            inputDialog.appendChild(claudeModelLabel);
+            inputDialog.appendChild(claudeModelSelect);
+            reasoningContainer.appendChild(reasoningEffortLabel);
+            reasoningContainer.appendChild(reasoningEffortSelect);
+            reasoningContainer.appendChild(reasoningSummaryLabel);
+            reasoningContainer.appendChild(reasoningSummarySelect);
+            inputDialog.appendChild(reasoningContainer);
             inputDialog.appendChild(maxTokensLabel);
             inputDialog.appendChild(maxTokensInput);
             inputDialog.appendChild(temperatureLabel);
@@ -436,7 +661,12 @@ class LLMAssistantSection {
             inputDialog.appendChild(buttonArea);
             
             body.appendChild(inputDialog);
-            apiKeyInput.focus();
+            // Focus on the appropriate input based on provider
+            if (currentProvider === 'claude') {
+              claudeKeyInput.focus();
+            } else {
+              openaiKeyInput.focus();
+            }
           };
           
           settingsBtn.addEventListener('click', showSettings);
@@ -460,7 +690,7 @@ class LLMAssistantSection {
             input.value = '';
             
             // Get current model name
-            const modelName = getSelectedModelName();
+            const modelName = getCurrentModelName();
             
             // Add loading message
             const loadingMsg = body.ownerDocument.createElement('div');
@@ -472,8 +702,8 @@ class LLMAssistantSection {
               // Get PDF text for this item (from cache or extract)
               const pdfText = await getPDFTextForItem(item, this.pdfTextCache);
               
-              // Call OpenAI API with message history and PDF text
-              const response = await callOpenAI(message, item, history.slice(0, -1), pdfText); // Pass history without current message
+              // Call LLM API (OpenAI or Claude) with message history and PDF text
+              const response = await callLLM(message, item, history.slice(0, -1), pdfText); // Pass history without current message
               const assistantMessage = { role: 'assistant', content: response };
               history.push(assistantMessage);
               

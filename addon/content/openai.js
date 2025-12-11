@@ -51,6 +51,20 @@ function setPref(prefName, value) {
   }
 }
 
+// Get provider preference (openai or claude)
+function getProvider() {
+  return getPref("extensions.zotero-llm-assistant.provider", "openai");
+}
+
+// Set provider preference
+function setProvider(provider) {
+  const success = setPref("extensions.zotero-llm-assistant.provider", provider);
+  if (success) {
+    Zotero.log(`Provider saved: ${provider}`);
+  }
+  return success;
+}
+
 // Get API key from Zotero preferences
 function getAPIKey() {
   const key = getPref("extensions.zotero-llm-assistant.openai-api-key");

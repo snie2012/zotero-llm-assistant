@@ -84,6 +84,11 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     rootURI + "content/openai.js",
     ctx
   );
+  // Load Claude module
+  Services.scriptloader.loadSubScript(
+    rootURI + "content/claude.js",
+    ctx
+  );
   // Load main module last
   Services.scriptloader.loadSubScript(
     rootURI + "content/main.js",
