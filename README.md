@@ -2,6 +2,10 @@
 
 An LLM (Large Language Model) assistant plugin for Zotero 7+.
 
+The main feature is a new LLM assistant tab in the side panel, and by default the assistant will have all the context of the current item you're reading, so you don't have to copy paste information. It's a more seamless experience for people who use Zotero to read papers, and use LLM regularly to ask questions about the paper being read.
+
+<img width="406" height="649" alt="Screenshot 2025-12-11 at 09 06 39" src="https://github.com/user-attachments/assets/da73b8d1-5a47-486d-a906-ae5fad11034e" />
+
 ## Status
 
 This is currently a minimal plugin that installs successfully. LLM assistant functionality is planned for future development.
