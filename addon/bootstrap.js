@@ -16,8 +16,19 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     ["content", "zotero-llm-assistant", rootURI + "content/"],
   ]);
 
-  // Load main module with rootURI
+  // Load modules with rootURI
   var ctx = { rootURI: rootURI };
+  // Load PDF module first
+  Services.scriptloader.loadSubScript(
+    rootURI + "content/pdf.js",
+    ctx
+  );
+  // Load OpenAI module second
+  Services.scriptloader.loadSubScript(
+    rootURI + "content/openai.js",
+    ctx
+  );
+  // Load main module last
   Services.scriptloader.loadSubScript(
     rootURI + "content/main.js",
     ctx

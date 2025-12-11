@@ -5,170 +5,6 @@
 
 Zotero.log("Zotero LLM Assistant: Main module loaded");
 
-// OpenAI API configuration
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-
-// Available GPT models
-const AVAILABLE_MODELS = [
-  // GPT-5 Series (Latest)
-  { id: 'gpt-5', name: 'GPT-5', description: 'Flagship model, excels in coding and complex tasks' },
-  { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Smaller, faster variant with lower latency' },
-  { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Compact version, minimal resource usage' },
-  
-  // GPT-4 Series
-  { id: 'gpt-4o', name: 'GPT-4o', description: 'Most capable model with multimodal support' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and cost-effective' },
-  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Fast GPT-4 with longer context' },
-  { id: 'gpt-4', name: 'GPT-4', description: 'High-quality responses' },
-  
-  // GPT-3.5 Series
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and affordable' },
-  { id: 'gpt-3.5-turbo-16k', name: 'GPT-3.5 Turbo 16k', description: 'Longer context window' }
-];
-
-// Get API key from Zotero preferences
-function getAPIKey() {
-  try {
-    const prefBranch = Components.classes["@mozilla.org/preferences-service;1"]
-      .getService(Components.interfaces.nsIPrefBranch);
-    
-    // Check if preference exists first
-    if (prefBranch.prefHasUserValue("extensions.zotero-llm-assistant.openai-api-key")) {
-      const key = prefBranch.getCharPref("extensions.zotero-llm-assistant.openai-api-key");
-      Zotero.log("API key loaded from preferences");
-      return key;
-    } else {
-      Zotero.log("No API key found in preferences");
-      return null;
-    }
-  } catch (e) {
-    Zotero.log("Error getting API key: " + e);
-    return null;
-  }
-}
-
-// Set API key in Zotero preferences
-function setAPIKey(key) {
-  try {
-    const prefBranch = Components.classes["@mozilla.org/preferences-service;1"]
-      .getService(Components.interfaces.nsIPrefBranch);
-    
-    prefBranch.setCharPref("extensions.zotero-llm-assistant.openai-api-key", key);
-    Zotero.log("API key saved to preferences successfully");
-    return true;
-  } catch (e) {
-    Zotero.log("Error setting API key: " + e);
-    return false;
-  }
-}
-
-// Get selected model from Zotero preferences
-function getSelectedModel() {
-  try {
-    const prefBranch = Components.classes["@mozilla.org/preferences-service;1"]
-      .getService(Components.interfaces.nsIPrefBranch);
-    
-    if (prefBranch.prefHasUserValue("extensions.zotero-llm-assistant.selected-model")) {
-      const model = prefBranch.getCharPref("extensions.zotero-llm-assistant.selected-model");
-      Zotero.log("Selected model loaded from preferences: " + model);
-      return model;
-    } else {
-      Zotero.log("No model preference found, using default: gpt-5");
-      return 'gpt-5'; // Default model
-    }
-  } catch (e) {
-    Zotero.log("Error getting selected model: " + e);
-    return 'gpt-5';
-  }
-}
-
-// Set selected model in Zotero preferences
-function setSelectedModel(model) {
-  try {
-    const prefBranch = Components.classes["@mozilla.org/preferences-service;1"]
-      .getService(Components.interfaces.nsIPrefBranch);
-    
-    prefBranch.setCharPref("extensions.zotero-llm-assistant.selected-model", model);
-    Zotero.log("Selected model saved to preferences: " + model);
-    return true;
-  } catch (e) {
-    Zotero.log("Error setting selected model: " + e);
-    return false;
-  }
-}
-
-// Function to call OpenAI API
-async function callOpenAI(message, item, messageHistory = []) {
-  const apiKey = getAPIKey();
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured. Please set it in Zotero preferences.');
-  }
-  
-  const selectedModel = getSelectedModel();
-  
-  // Prepare context about the item
-  const itemContext = `Item: ${item.getField('title') || 'Untitled'}
-Type: ${item.itemType}
-Authors: ${item.getCreators().map(c => c.lastName + ', ' + c.firstName).join('; ')}
-Year: ${item.getField('date') || 'Unknown'}`;
-  
-  // Build messages array with system message, history, and current message
-  const messages = [];
-  
-  // Add system message with item context (only if no history exists)
-  if (messageHistory.length === 0) {
-    messages.push({
-      role: 'system',
-      content: `You are helping analyze a Zotero reference item. Here's the item information:
-
-${itemContext}
-
-Please provide helpful responses about this item.`
-    });
-  }
-  
-  // Add message history
-  messages.push(...messageHistory);
-  
-  // Add current user message
-  messages.push({
-    role: 'user',
-    content: message
-  });
-
-  const response = await fetch(OPENAI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: selectedModel,
-      messages: messages,
-      max_completion_tokens: selectedModel.startsWith('gpt-5') ? 2000 : 500,
-      ...(selectedModel.startsWith('gpt-5') ? {} : { temperature: 0.7 })
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API request failed: ${response.status} ${response.statusText}. Model: ${selectedModel}. Error: ${errorText}`);
-  }
-
-  const data = await response.json();
-  Zotero.log("API Response data: " + JSON.stringify(data));
-  
-  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-    Zotero.log("Unexpected response structure: " + JSON.stringify(data));
-    throw new Error("Unexpected API response structure");
-  }
-  
-  const content = data.choices[0].message.content;
-  Zotero.log("Extracted content: " + content);
-  
-  return content;
-}
-
 class LLMAssistantSection {
   constructor(rootURI) {
     this.rootURI = rootURI;
@@ -176,6 +12,8 @@ class LLMAssistantSection {
     this.pluginID = 'zotero-llm-assistant@snie2012.com';
     // Store message history per item (keyed by item ID)
     this.messageHistory = new Map();
+    // Cache PDF text per item (keyed by item ID)
+    this.pdfTextCache = new Map();
   }
 
   // Initialize the section
@@ -210,6 +48,20 @@ class LLMAssistantSection {
            }
            const history = this.messageHistory.get(itemID);
            
+           // Load PDF text if not already cached (async, won't block rendering)
+           getPDFTextForItem(item, this.pdfTextCache).then(pdfText => {
+             if (pdfText) {
+               Zotero.log(`PDF text loaded for item ${itemID}: ${pdfText.length} characters`);
+             } else {
+               const pdfAttachments = getPDFAttachments(item);
+               if (pdfAttachments.length > 0) {
+                 Zotero.log(`Item ${itemID} has ${pdfAttachments.length} PDF(s) but text extraction was not successful`);
+               }
+             }
+           }).catch(e => {
+             Zotero.log("Error loading PDF text: " + e);
+           });
+           
            // Create chat UI
            const container = body.ownerDocument.createElement('div');
            container.style.cssText = 'display: flex; flex-direction: column; height: 100%;';
@@ -223,7 +75,30 @@ class LLMAssistantSection {
            const apiKey = getAPIKey();
            if (apiKey) {
              if (history.length === 0) {
-               messagesArea.textContent = 'Welcome! Ask me about this item.';
+               // Check for PDF attachments
+               const pdfAttachments = getPDFAttachments(item);
+               let welcomeMsg = 'Welcome! Ask me about this item.';
+               if (pdfAttachments.length > 0) {
+                 welcomeMsg += `\n\n📄 Found ${pdfAttachments.length} PDF attachment(s). Extracting text...`;
+               }
+               messagesArea.textContent = welcomeMsg;
+               
+               // Load PDF text in background
+               getPDFTextForItem(item, this.pdfTextCache).then(pdfText => {
+                 if (pdfText) {
+                   // Update welcome message if still showing
+                   if (messagesArea.textContent.includes('Extracting text')) {
+                     messagesArea.textContent = `Welcome! Ask me about this item.\n\n📄 PDF text loaded (${Math.round(pdfText.length / 1000)}k characters). You can ask questions about the PDF content.`;
+                   }
+                 } else if (pdfAttachments.length > 0) {
+                   // Update message if extraction failed
+                   if (messagesArea.textContent.includes('Extracting text')) {
+                     messagesArea.textContent = `Welcome! Ask me about this item.\n\n⚠️ PDF attachment(s) found but text extraction was not successful. You can still ask about the item metadata.`;
+                   }
+                 }
+               }).catch(e => {
+                 Zotero.log("Error loading PDF text: " + e);
+               });
              } else {
                // Restore previous messages
                history.forEach(msg => {
@@ -369,8 +244,11 @@ class LLMAssistantSection {
              messagesArea.appendChild(loadingMsg);
              
              try {
-               // Call OpenAI API with message history
-               const response = await callOpenAI(message, item, history.slice(0, -1)); // Pass history without current message
+               // Get PDF text for this item (from cache or extract)
+               const pdfText = await getPDFTextForItem(item, this.pdfTextCache);
+               
+               // Call OpenAI API with message history and PDF text
+               const response = await callOpenAI(message, item, history.slice(0, -1), pdfText); // Pass history without current message
                const assistantMessage = { role: 'assistant', content: response };
                history.push(assistantMessage);
                loadingMsg.textContent = 'Assistant: ' + response;
