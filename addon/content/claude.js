@@ -105,7 +105,7 @@ function getSelectedClaudeModelMaxPDFLength() {
 // Get max tokens from preferences (Claude uses max_tokens instead of max_output_tokens)
 function getClaudeMaxTokens() {
   const tokens = getPref("extensions.zotero-llm-assistant.claude-max-tokens");
-  return tokens ? parseInt(tokens, 10) : 4096; // Default to 4k for Claude
+  return tokens ? parseInt(tokens, 10) : 100000; // Default to 100k for Claude
 }
 
 // Set max tokens preference
@@ -133,6 +133,7 @@ function setClaudeTemperature(temperature) {
   }
   return success;
 }
+
 
 // Function to call Claude API
 async function callClaude(message, item, messageHistory = [], pdfText = null) {
@@ -212,7 +213,14 @@ ${itemContext}`;
     messages: messages,
     system: systemContent,
     max_tokens: maxTokens,
-    temperature: temperature
+    temperature: temperature,
+    tools: [
+      {
+        type: "web_search_20250305",
+        name: "web_search",
+        max_uses: 5
+      }
+    ]
   };
   
   const response = await fetch(ANTHROPIC_API_URL, {
@@ -240,20 +248,31 @@ ${itemContext}`;
 
   const data = await response.json();
   
+  // Check if response was truncated
+  if (data.stop_reason === 'max_tokens') {
+    Zotero.log(`Warning: Claude response was truncated due to max_tokens limit (${maxTokens}). Consider increasing max_tokens.`);
+  }
+  
   // Claude API response structure: content is an array of text blocks
   if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
     Zotero.log("Unexpected response structure: " + JSON.stringify(data));
     throw new Error("Unexpected API response structure - no content array");
   }
   
-  // Extract text from content array (usually first item is text)
-  const textContent = data.content.find(item => item.type === 'text');
-  if (!textContent || !textContent.text) {
+  // Extract and concatenate all text blocks from content array
+  // There can be multiple text blocks, especially with tool use
+  const textBlocks = data.content.filter(item => item.type === 'text');
+  if (textBlocks.length === 0) {
     Zotero.log("No text content found in response: " + JSON.stringify(data));
     throw new Error("No text content found in API response");
   }
   
-  const content = textContent.text;
+  // Concatenate all text blocks
+  const content = textBlocks.map(block => block.text).join('');
+  
+  if (data.stop_reason === 'max_tokens') {
+    Zotero.log(`Response was truncated. Full length: ${content.length} characters`);
+  }
   
   return content;
 }
