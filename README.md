@@ -8,7 +8,7 @@ The main feature is a new LLM assistant tab in the side panel, and by default th
 
 ## Status
 
-This is currently a minimal plugin that installs successfully. LLM assistant functionality is planned for future development.
+This is currently a minimal plugin that installs successfully. Working with Cursor to add more functions.
 
 ## Installation
 
