@@ -363,12 +363,14 @@ class LLMAssistantSection {
             openaiKeyLabel.className = 'llm-dialog-label';
             openaiKeyLabel.textContent = 'OpenAI API Key:';
             openaiKeyLabel.id = 'llm-openai-key-label';
+            openaiKeyLabel.style.display = currentProvider === 'openai' ? 'block' : 'none';
             
             const openaiKeyInput = body.ownerDocument.createElement('input');
             openaiKeyInput.type = 'password';
             openaiKeyInput.className = 'llm-dialog-input';
             openaiKeyInput.value = openaiKey;
             openaiKeyInput.id = 'llm-openai-key-input';
+            openaiKeyInput.style.display = currentProvider === 'openai' ? 'block' : 'none';
             
             // Claude API Key
             const claudeKeyLabel = body.ownerDocument.createElement('label');
@@ -389,10 +391,12 @@ class LLMAssistantSection {
             openaiModelLabel.className = 'llm-dialog-label';
             openaiModelLabel.textContent = 'GPT Model:';
             openaiModelLabel.id = 'llm-openai-model-label';
+            openaiModelLabel.style.display = currentProvider === 'openai' ? 'block' : 'none';
             
             const openaiModelSelect = body.ownerDocument.createElement('select');
             openaiModelSelect.className = 'llm-dialog-select';
             openaiModelSelect.id = 'llm-openai-model-select';
+            openaiModelSelect.style.display = currentProvider === 'openai' ? 'block' : 'none';
             
             // Populate OpenAI model options
             if (typeof AVAILABLE_MODELS !== 'undefined') {
