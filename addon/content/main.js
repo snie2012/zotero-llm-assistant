@@ -118,10 +118,12 @@ class LLMAssistantSection {
         pluginID: this.pluginID,
         header: {
           l10nID: 'zotero-llm-assistant-header',
+          label: 'LLM Assistant',
           icon: this.rootURI + "icons/llm-assistant.svg"
         },
         sidenav: {
           l10nID: 'zotero-llm-assistant-sidenav',
+          label: 'LLM Assistant',
           icon: this.rootURI + "icons/llm-assistant.svg"
         },
         onInit: ({ item, editable, tabType }) => {
@@ -170,6 +172,28 @@ class LLMAssistantSection {
           const messagesArea = body.ownerDocument.createElement('div');
           messagesArea.id = 'llm-messages';
           messagesArea.className = 'llm-messages';
+          
+          // Add event delegation for link clicks and text selection
+          messagesArea.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link && link.href) {
+              e.preventDefault();
+              e.stopPropagation();
+              try {
+                // Use Zotero's URL opening mechanism
+                const ios = Components.classes["@mozilla.org/network/io-service;1"]
+                  .getService(Components.interfaces.nsIIOService);
+                const uri = ios.newURI(link.href, null, null);
+                const extProc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
+                  .getService(Components.interfaces.nsIExternalProtocolService);
+                extProc.loadURI(uri);
+                Zotero.log("Opening link: " + link.href);
+              } catch (err) {
+                Zotero.log("Error opening link: " + err + " - " + link.href);
+              }
+              return false;
+            }
+          }, true);
           
           // Check API key status
           const apiKey = getAPIKey();

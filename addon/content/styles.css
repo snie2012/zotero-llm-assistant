@@ -17,6 +17,10 @@
 .llm-message {
   margin-bottom: 10px;
   padding: 5px;
+  user-select: text;
+  -moz-user-select: text;
+  pointer-events: auto;
+  cursor: text;
 }
 
 .llm-message-user {
@@ -92,6 +96,10 @@
 .llm-markdown-content {
   line-height: 1.6;
   color: #333;
+  user-select: text;
+  -moz-user-select: text;
+  pointer-events: auto;
+  cursor: text;
 }
 
 .llm-markdown-content h1 {
@@ -165,6 +173,10 @@
 .llm-markdown-content a {
   color: #667eea;
   text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: text;
+  -moz-user-select: text;
 }
 
 .llm-markdown-content a:hover {
