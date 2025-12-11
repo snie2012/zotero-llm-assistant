@@ -73,11 +73,12 @@ zotero-llm-assistant/
 
 ## Features (Planned)
 
-- [ ] LLM-powered research assistant
-- [ ] Context-aware citation suggestions
-- [ ] Automated literature review assistance
-- [ ] Intelligent note-taking suggestions
-- [ ] Research question answering
+- [x] LLM-powered research assistant
+- [x] Basic QA
+- [x] Read pdf text into context by default
+- [ ] Context compression
+- [ ] Quick answer for selected text
+
 
 ## License
 

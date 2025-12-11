@@ -127,6 +127,10 @@ ${itemContext}`;
         ? pdfText.substring(pdfText.length - maxPDFLength) + '\n\n[Note: PDF text truncated - showing last portion]'
         : pdfText;
       
+      if (pdfText.length > maxPDFLength) {
+        Zotero.log(`PDF text truncated from ${pdfText.length} to ${maxPDFLength} characters`);
+      }
+      
       systemContent += `\n\nThe following is the full text content from PDF attachments associated with this item:\n\n${pdfContent}`;
     } else {
       const pdfAttachments = getPDFAttachments(item);
@@ -136,6 +140,8 @@ ${itemContext}`;
     }
     
     systemContent += '\n\nPlease provide helpful responses about this item.';
+
+    // Zotero.log("System content: " + systemContent);
     
     messages.push({
       role: 'system',
@@ -180,7 +186,7 @@ ${itemContext}`;
   }
   
   const content = data.choices[0].message.content;
-  Zotero.log("Extracted content: " + content);
+//   Zotero.log("Extracted content: " + content);
   
   return content;
 }

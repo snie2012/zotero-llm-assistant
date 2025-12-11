@@ -33,64 +33,21 @@ function getPDFAttachments(item) {
 // Extract text from a PDF file
 async function extractPDFText(attachment) {
   try {
-    // Try to get full text using Zotero's Fulltext API
-    try {
-      const fulltext = await Zotero.Fulltext.getAsync(attachment.id);
-      if (fulltext && fulltext.text) {
-        Zotero.log(`Using pre-extracted text from Zotero for attachment ${attachment.id}`);
-        return fulltext.text;
-      }
-    } catch (e) {
-      Zotero.log("Fulltext.getAsync not available or failed: " + e);
+    const itemID = attachment.id;
+    
+    // Use attachmentText property - this is the correct Zotero API
+    const text = await attachment.attachmentText;
+    
+    if (text) {
+      Zotero.log(`Successfully extracted text from PDF ${itemID} (${text.length} chars)`);
+      return text;
     }
     
-    // Alternative: Try using attachment's getFulltext method if available
-    try {
-      if (typeof attachment.getFulltext === 'function') {
-        const fulltext = await attachment.getFulltext();
-        if (fulltext && fulltext.text) {
-          Zotero.log(`Using attachment.getFulltext() for attachment ${attachment.id}`);
-          return fulltext.text;
-        }
-      }
-    } catch (e) {
-      Zotero.log("attachment.getFulltext() failed: " + e);
-    }
-    
-    // If no pre-extracted text, try to get file path and read it
-    let filePath;
-    try {
-      if (typeof attachment.getFilePathAsync === 'function') {
-        filePath = await attachment.getFilePathAsync();
-      } else if (typeof attachment.getFilePath === 'function') {
-        filePath = attachment.getFilePath();
-      }
-    } catch (e) {
-      Zotero.log("Error getting file path: " + e);
-    }
-    
-    if (!filePath) {
-      Zotero.log(`No file path available for attachment ${attachment.id}`);
-      return null;
-    }
-    
-    // Check if file exists
-    const file = Components.classes["@mozilla.org/file/local;1"]
-      .createInstance(Components.interfaces.nsILocalFile);
-    file.initWithPath(filePath);
-    
-    if (!file.exists()) {
-      Zotero.log(`PDF file does not exist: ${filePath}`);
-      return null;
-    }
-    
-    Zotero.log(`PDF file found at: ${filePath}, but text extraction not available`);
-    
-    // For now, return null if we can't extract text
-    // In the future, we could integrate pdf.js or another PDF parsing library
+    Zotero.log(`No content found for PDF ${itemID}`);
     return null;
+    
   } catch (e) {
-    Zotero.log("Error extracting PDF text: " + e);
+    Zotero.log(`Error extracting PDF text for ${attachment.id}: ${e.message}\n${e.stack}`);
     return null;
   }
 }
@@ -107,6 +64,7 @@ async function getPDFTextForItem(item, pdfTextCache) {
   
   const pdfAttachments = getPDFAttachments(item);
   if (pdfAttachments.length === 0) {
+    Zotero.log(`No PDF attachments found for item ${itemID}`);
     pdfTextCache.set(itemID, null);
     return null;
   }
@@ -131,4 +89,3 @@ async function getPDFTextForItem(item, pdfTextCache) {
   
   return result;
 }
-
