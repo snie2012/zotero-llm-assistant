@@ -83,7 +83,7 @@ zotero-llm-assistant/
 - [ ] Context compression
 - [ ] Quick answer for selected text
 - [ ] UI improvements
-- [ ] Support search API
+- [x] Support search API
 - [ ] Support files API
 
 
