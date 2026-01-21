@@ -314,3 +314,30 @@ ${itemContext}`;
   return content;
 }
 
+
+// Function to get token counts for text using open-source tokenizer
+// Uses gpt-tokenizer library (open-source implementation of OpenAI's tiktoken)
+// This provides exact token counts without consuming API quota
+function getTokenCountsOpenAI(text) {
+  if (!text || text.length === 0) {
+    return { input_tokens: 0, estimated: false };
+  }
+  
+  try {
+    // The gpt-tokenizer library exports GPTTokenizer_cl100k_base to globalThis
+    // The library uses cl100k_base encoding which works for GPT-3.5, GPT-4, and GPT-5.1
+    if (typeof GPTTokenizer_cl100k_base === 'undefined' || typeof GPTTokenizer_cl100k_base.encode !== 'function') {
+      throw new Error('GPT tokenizer library not loaded. Please ensure gpt-tokenizer.js is in the lib directory and loaded in bootstrap.js.');
+    }
+    
+    const tokens = GPTTokenizer_cl100k_base.encode(text);
+    return {
+      input_tokens: Array.isArray(tokens) ? tokens.length : tokens,
+      total_tokens: Array.isArray(tokens) ? tokens.length : tokens,
+      estimated: false
+    };
+  } catch (e) {
+    Zotero.log("Error getting token counts with tokenizer: " + e);
+    throw e;
+  }
+}

@@ -5,6 +5,7 @@
 
 // Anthropic Claude API configuration
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_COUNT_TOKENS_URL = 'https://api.anthropic.com/v1/messages/count_tokens';
 
 // Available Claude models with their max PDF text length (in characters)
 // Based on context window sizes for Claude models
@@ -277,3 +278,58 @@ ${itemContext}`;
   return content;
 }
 
+
+// Function to get token counts for text using Claude's count_tokens API
+// This endpoint does not consume quota and only returns token counts
+async function getTokenCountsClaude(text) {
+  const apiKey = getClaudeAPIKey();
+  if (!apiKey) {
+    throw new Error('Claude API key not configured');
+  }
+  
+  const selectedModel = getSelectedClaudeModel();
+  
+  // Prepare messages array with the text
+  const messages = [{
+    role: 'user',
+    content: text
+  }];
+  
+  const requestBody = {
+    model: selectedModel,
+    messages: messages
+  };
+  
+  try {
+    const response = await fetch(ANTHROPIC_COUNT_TOKENS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01' // Required header for Anthropic API
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      Zotero.log(`Claude count_tokens API error: ${response.status} ${response.statusText}. ${errorText}`);
+      throw new Error(`Token counting failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Claude count_tokens API returns: { "input_tokens": <number> }
+    if (data.input_tokens !== undefined) {
+      return {
+        input_tokens: data.input_tokens,
+        estimated: false
+      };
+    }
+    
+    throw new Error("Unexpected response structure from count_tokens API");
+  } catch (e) {
+    Zotero.log("Error getting token counts from Claude API: " + e);
+    throw e; // Re-throw to let caller handle
+  }
+}

@@ -74,6 +74,21 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     Zotero.log("Warning: Could not load MathJax library in bootstrap: " + e);
   }
   
+  // Load GPT tokenizer library (needed for OpenAI token counting)
+  try {
+    Services.scriptloader.loadSubScript(
+      rootURI + "content/lib/gpt-tokenizer.js",
+      ctx
+    );
+    if (typeof GPTTokenizer_cl100k_base !== 'undefined') {
+      Zotero.log("GPT tokenizer library loaded successfully in bootstrap");
+    } else {
+      Zotero.log("Warning: GPT tokenizer script loaded but GPTTokenizer_cl100k_base not found");
+    }
+  } catch (e) {
+    Zotero.log("Warning: Could not load GPT tokenizer library in bootstrap: " + e);
+  }
+  
   // Load PDF module
   Services.scriptloader.loadSubScript(
     rootURI + "content/pdf.js",

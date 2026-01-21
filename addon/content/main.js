@@ -58,6 +58,60 @@ async function callLLM(message, item, messageHistory, pdfText) {
   }
 }
 
+async function getTokenCounts(text) {
+  const provider = getCurrentProvider();
+  if (provider === 'claude') {
+    if (typeof getTokenCountsClaude === 'function') {
+      return await getTokenCountsClaude(text);
+    } else {
+      throw new Error('Claude token counting function not available');
+    }
+  } else {
+    if (typeof getTokenCountsOpenAI === 'function') {
+      return await getTokenCountsOpenAI(text);
+    } else {
+      throw new Error('OpenAI token counting function not available');
+    }
+  }
+}
+
+// Helper function to create a cache key for token counts
+// Uses a simple hash of text content + provider + model
+function getTokenCountCacheKey(text, provider, modelName) {
+  // Create a simple hash from text (first 100 chars + length for speed)
+  const textHash = text.length + '_' + text.substring(0, 100).replace(/[^a-zA-Z0-9]/g, '');
+  return `${provider}_${modelName}_${textHash}`;
+}
+
+// Get token counts with caching
+async function getTokenCountsCached(text, tokenCountCache) {
+  if (!text || text.length === 0) {
+    return { input_tokens: 0, estimated: false };
+  }
+  
+  const provider = getCurrentProvider();
+  const modelName = getCurrentModelName();
+  const cacheKey = getTokenCountCacheKey(text, provider, modelName);
+  
+  // Check cache first
+  if (tokenCountCache.has(cacheKey)) {
+    Zotero.log(`Token count cache hit for ${provider}/${modelName}`);
+    return tokenCountCache.get(cacheKey);
+  }
+  
+  // Not in cache, get token counts
+  try {
+    const tokenCounts = await getTokenCounts(text);
+    // Store in cache
+    tokenCountCache.set(cacheKey, tokenCounts);
+    Zotero.log(`Token count cached for ${provider}/${modelName}: ${tokenCounts.input_tokens || tokenCounts.total_tokens || 0} tokens`);
+    return tokenCounts;
+  } catch (e) {
+    Zotero.log("Error getting token counts: " + e);
+    throw e;
+  }
+}
+
 const loadCSS = async (doc, rootURI) => {
   if (doc.getElementById('llm-assistant-styles')) return;
   
@@ -160,6 +214,8 @@ class LLMAssistantSection {
     this.messageHistory = new Map();
     // Cache PDF text per item (keyed by item ID)
     this.pdfTextCache = new Map();
+    // Cache token counts (keyed by text hash + provider + model)
+    this.tokenCountCache = new Map();
   }
 
   // Initialize the section
@@ -261,11 +317,27 @@ class LLMAssistantSection {
               messagesArea.textContent = welcomeMsg;
               
               // Load PDF/HTML text in background
-              getPDFTextForItem(item, this.pdfTextCache).then(pdfText => {
+              getPDFTextForItem(item, this.pdfTextCache).then(async pdfText => {
                 if (pdfText) {
+                  // Get token counts from LLM provider's token counting API (with caching)
+                  let tokenInfo = '';
+                  try {
+                    const tokenCounts = await getTokenCountsCached(pdfText, this.tokenCountCache);
+                    const tokenLabel = tokenCounts.estimated ? '~' : '';
+                    if (tokenCounts.total_tokens !== undefined) {
+                      tokenInfo = ` (${tokenLabel}${tokenCounts.total_tokens.toLocaleString()} tokens)`;
+                    } else if (tokenCounts.input_tokens !== undefined) {
+                      tokenInfo = ` (${tokenLabel}${tokenCounts.input_tokens.toLocaleString()} tokens)`;
+                    }
+                  } catch (e) {
+                    Zotero.log("Error getting token counts: " + e);
+                    // Continue without token info if counting fails (e.g., OpenAI doesn't have token counting API)
+                    // For OpenAI, token counting is not available via dedicated API
+                  }
+                  
                   // Update welcome message if still showing
                   if (messagesArea.textContent.includes('Extracting text')) {
-                    messagesArea.textContent = `Welcome! Ask me about this item.\n\n📄 PDF/HTML text loaded (${Math.round(pdfText.length / 1000)}k characters). You can ask questions about the content.`;
+                    messagesArea.textContent = `Welcome! Ask me about this item.\n\n📄 PDF/HTML text loaded (${Math.round(pdfText.length / 1000)}k characters${tokenInfo}). You can ask questions about the content.`;
                   }
                 } else if (pdfAttachments.length > 0) {
                   // Update message if extraction failed
